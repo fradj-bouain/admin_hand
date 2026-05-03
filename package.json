@@ -8,8 +8,7 @@
     "build": "node --max-old-space-size=4096 ./node_modules/@angular/cli/bin/ng.js build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint",
-    "extract-logo": "node scripts/extract-logo.cjs"
+    "lint": "ng lint"
   },
   "engines": {
     "node": ">=18"
