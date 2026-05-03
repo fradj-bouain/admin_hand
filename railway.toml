@@ -1,0 +1,9 @@
+# Railway: définir la racine du service sur « admin » si le dépôt est monorepo.
+# Build: Nixpacks exécute `npm run build` (voir nixpacks.toml pour NPM_CONFIG_PRODUCTION).
+# https://docs.railway.app/deploy/builds
+
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "on_failure"
+healthcheckPath = "/health"
+healthcheckTimeout = 120

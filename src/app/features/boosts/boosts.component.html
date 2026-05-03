@@ -1,0 +1,295 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-title">
+      <mat-icon class="header-icon">bolt</mat-icon>
+      <h1>Gestion des Boosts</h1>
+    </div>
+    <button mat-raised-button color="primary" (click)="loadData(); loadHistory(historyFilter || undefined)">
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- BOOST-01: Enhanced Stats Cards -->
+  <div class="stats-row">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon warning">
+            <mat-icon>hourglass_empty</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">En attente</span>
+            <span class="stat-value">{{ stats.pendingCount }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon success">
+            <mat-icon>rocket_launch</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Actifs</span>
+            <span class="stat-value">{{ stats.activeCount }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- BOOST-01: Total revenue stat -->
+    <mat-card class="stat-card revenue-stat">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon primary">
+            <mat-icon>payments</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Revenus Boosts</span>
+            <span class="stat-value">{{ stats.totalRevenue || 0 }} <small>TND</small></span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- BOOST-01: Total count stat -->
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon info">
+            <mat-icon>bar_chart</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Total Boosts</span>
+            <span class="stat-value">{{ stats.totalCount || (pendingBoosts.length + historyBoosts.length) }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ error }}</span>
+  </div>
+
+  <!-- Tabs -->
+  <mat-card *ngIf="!isLoading" class="table-card">
+    <mat-tab-group (selectedIndexChange)="onTabChange($event)" [selectedIndex]="selectedTab">
+      
+      <!-- Tab 1: Pending -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">schedule</mat-icon>
+          En attente
+          <span class="badge" *ngIf="pendingBoosts.length > 0">{{ pendingBoosts.length }}</span>
+        </ng-template>
+        
+        <div class="tab-content">
+          <table mat-table [dataSource]="pendingBoosts" class="full-width-table" *ngIf="pendingBoosts.length > 0">
+            
+            <!-- Employee Column -->
+            <ng-container matColumnDef="employee">
+              <th mat-header-cell *matHeaderCellDef>Employé</th>
+              <td mat-cell *matCellDef="let boost">
+                <div class="employee-cell">
+                  <strong>{{ boost.employeeName || 'N/A' }}</strong>
+                  <small class="text-muted">{{ boost.employeeId | slice:0:8 }}...</small>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Type Column -->
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let boost">
+                <span class="type-badge">{{ getBoostTypeLabel(boost.boostType) }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Amount Column -->
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <td mat-cell *matCellDef="let boost">
+                <strong>{{ boost.amount }} {{ boost.currency || 'TND' }}</strong>
+              </td>
+            </ng-container>
+
+            <!-- Reference Column -->
+            <ng-container matColumnDef="reference">
+              <th mat-header-cell *matHeaderCellDef>Référence</th>
+              <td mat-cell *matCellDef="let boost">
+                <code class="reference-code">{{ boost.paymentReference || '-' }}</code>
+              </td>
+            </ng-container>
+
+            <!-- Payment Method Column -->
+            <ng-container matColumnDef="payment">
+              <th mat-header-cell *matHeaderCellDef>Paiement</th>
+              <td mat-cell *matCellDef="let boost">{{ getPaymentMethodLabel(boost.paymentMethod) }}</td>
+            </ng-container>
+
+            <!-- Date Column -->
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Date demande</th>
+              <td mat-cell *matCellDef="let boost">{{ formatDate(boost.requestedAt) }}</td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
+              <td mat-cell *matCellDef="let boost" class="actions-cell">
+                <button 
+                  mat-raised-button 
+                  color="primary"
+                  (click)="validateBoost(boost.id)"
+                  [disabled]="processingId === boost.id">
+                  <mat-icon>check_circle</mat-icon>
+                  Valider
+                </button>
+                <button 
+                  mat-stroked-button 
+                  color="warn"
+                  (click)="cancelBoost(boost.id)"
+                  [disabled]="processingId === boost.id">
+                  <mat-icon>cancel</mat-icon>
+                  Annuler
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+
+          <!-- Empty State -->
+          <div *ngIf="pendingBoosts.length === 0" class="empty-state">
+            <mat-icon>inbox</mat-icon>
+            <p>Aucun boost en attente</p>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 2: History -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">history</mat-icon>
+          Historique
+        </ng-template>
+        
+        <div class="tab-content">
+          <!-- Filter -->
+          <div class="filter-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Filtrer par statut</mat-label>
+              <mat-select [(value)]="historyFilter" (selectionChange)="onFilterChange($event.value)">
+                <mat-option value="">Tous</mat-option>
+                <mat-option value="pending">En attente</mat-option>
+                <mat-option value="active">Actifs</mat-option>
+                <mat-option value="expired">Expirés</mat-option>
+                <mat-option value="cancelled">Annulés</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Loading -->
+          <div *ngIf="isLoadingHistory" class="loading-container small">
+            <mat-spinner diameter="32"></mat-spinner>
+          </div>
+
+          <table mat-table [dataSource]="historyBoosts" class="full-width-table" *ngIf="!isLoadingHistory && historyBoosts.length > 0">
+            
+            <!-- Employee Column -->
+            <ng-container matColumnDef="employee">
+              <th mat-header-cell *matHeaderCellDef>Employé</th>
+              <td mat-cell *matCellDef="let boost">
+                <div class="employee-cell">
+                  <strong>{{ boost.employeeName || 'N/A' }}</strong>
+                  <small class="text-muted">{{ boost.employeeId | slice:0:8 }}...</small>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Type Column -->
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let boost">
+                <span class="type-badge">{{ getBoostTypeLabel(boost.boostType) }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Amount Column -->
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <td mat-cell *matCellDef="let boost">
+                <strong>{{ boost.amount }} {{ boost.currency || 'TND' }}</strong>
+              </td>
+            </ng-container>
+
+            <!-- Reference Column -->
+            <ng-container matColumnDef="reference">
+              <th mat-header-cell *matHeaderCellDef>Référence</th>
+              <td mat-cell *matCellDef="let boost">
+                <code class="reference-code">{{ boost.paymentReference || '-' }}</code>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Statut</th>
+              <td mat-cell *matCellDef="let boost">
+                <span class="status-chip" [ngClass]="getStatusClass(boost.status)">
+                  {{ getStatusLabel(boost.status) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Date Column -->
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Date</th>
+              <td mat-cell *matCellDef="let boost">{{ formatDate(boost.requestedAt) }}</td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let boost">
+                <button 
+                  *ngIf="isActiveBoost(boost)" 
+                  mat-icon-button 
+                  color="warn"
+                  matTooltip="Désactiver le boost"
+                  [disabled]="processingId === boost.id"
+                  (click)="deactivateBoost(boost)">
+                  <mat-icon *ngIf="processingId !== boost.id">power_settings_new</mat-icon>
+                  <mat-spinner *ngIf="processingId === boost.id" diameter="20"></mat-spinner>
+                </button>
+                <span *ngIf="!isActiveBoost(boost)" class="text-muted">-</span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: historyColumns;"></tr>
+          </table>
+
+          <!-- Empty State -->
+          <div *ngIf="!isLoadingHistory && historyBoosts.length === 0" class="empty-state">
+            <mat-icon>inbox</mat-icon>
+            <p>Aucun boost dans l'historique</p>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+</div>

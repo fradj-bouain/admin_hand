@@ -1,0 +1,72 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <div class="login-header">
+      <div class="logo">
+        <img src="/logo.png" alt="SNAY3I" class="login-logo-img" width="72" height="72" />
+      </div>
+      <h1>SNAY3I</h1>
+      <p class="subtitle">Administration</p>
+    </div>
+
+    <mat-card-content>
+      <form [formGroup]="loginForm" (ngSubmit)="login()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" required autocomplete="email">
+          <mat-icon matPrefix>email</mat-icon>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
+            Email requis
+          </mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
+            Email invalide
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Mot de passe</mat-label>
+          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" required autocomplete="current-password">
+          <mat-icon matPrefix>lock</mat-icon>
+          <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+            Mot de passe requis
+          </mat-error>
+        </mat-form-field>
+
+        <div class="actions">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="isLoading || loginForm.invalid"
+            class="full-width login-btn">
+            <mat-spinner diameter="20" *ngIf="isLoading" class="inline-spinner"></mat-spinner>
+            <span *ngIf="!isLoading">
+              <mat-icon>login</mat-icon>
+              Se connecter
+            </span>
+          </button>
+        </div>
+      </form>
+
+      <nav class="login-legal-links" aria-label="Pages légales publiques">
+        <div class="legal-links-row">
+          <a routerLink="/privacy-policy" class="legal-link">
+            <mat-icon class="legal-link__icon" aria-hidden="true">privacy_tip</mat-icon>
+            <span class="legal-link__text">Politique de confidentialité</span>
+          </a>
+          <span class="legal-links__sep" aria-hidden="true"></span>
+          <a routerLink="/delete-user-data" class="legal-link">
+            <mat-icon class="legal-link__icon" aria-hidden="true">delete_forever</mat-icon>
+            <span class="legal-link__text">Suppression des données</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="login-footer">
+        <p>Accès réservé aux administrateurs</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

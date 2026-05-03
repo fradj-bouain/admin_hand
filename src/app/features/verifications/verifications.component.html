@@ -1,0 +1,298 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-title">
+      <mat-icon class="header-icon">verified</mat-icon>
+      <h1>Gestion des Vérifications</h1>
+    </div>
+    <button mat-raised-button color="primary" (click)="loadData(); loadHistory(historyFilter || undefined)">
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- Stats Card -->
+  <div class="stats-row">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon warning">
+            <mat-icon>badge</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Demandes en attente</span>
+            <span class="stat-value">{{ stats.pendingCount }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ error }}</span>
+  </div>
+
+  <!-- Tabs -->
+  <mat-card *ngIf="!isLoading" class="table-card">
+    <mat-tab-group (selectedIndexChange)="onTabChange($event)" [selectedIndex]="selectedTab">
+      
+      <!-- Tab 1: Pending -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">schedule</mat-icon>
+          En attente
+          <span class="badge" *ngIf="pendingVerifications.length > 0">{{ pendingVerifications.length }}</span>
+        </ng-template>
+        
+        <div class="tab-content">
+          <table mat-table [dataSource]="pendingVerifications" class="full-width-table" *ngIf="pendingVerifications.length > 0">
+            
+            <!-- Employee Column -->
+            <ng-container matColumnDef="employee">
+              <th mat-header-cell *matHeaderCellDef>Employé</th>
+              <td mat-cell *matCellDef="let v">
+                <div class="employee-cell">
+                  <strong>{{ v.employeeName || 'N/A' }}</strong>
+                  <small class="text-muted">{{ v.employeeId | slice:0:8 }}...</small>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Amount Column -->
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <td mat-cell *matCellDef="let v">
+                <strong>{{ v.amount }} TND</strong>
+              </td>
+            </ng-container>
+
+            <!-- Reference Column -->
+            <ng-container matColumnDef="reference">
+              <th mat-header-cell *matHeaderCellDef>Référence</th>
+              <td mat-cell *matCellDef="let v">
+                <code class="reference-code">{{ v.paymentReference || '-' }}</code>
+              </td>
+            </ng-container>
+
+            <!-- Payment Method Column -->
+            <ng-container matColumnDef="payment">
+              <th mat-header-cell *matHeaderCellDef>Paiement</th>
+              <td mat-cell *matCellDef="let v">{{ getPaymentMethodLabel(v.paymentMethod) }}</td>
+            </ng-container>
+
+            <!-- Date Column -->
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Date demande</th>
+              <td mat-cell *matCellDef="let v">{{ formatDate(v.requestedAt) }}</td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
+              <td mat-cell *matCellDef="let v" class="actions-cell">
+                <button 
+                  mat-raised-button 
+                  color="accent"
+                  (click)="viewDocuments(v)">
+                  <mat-icon>visibility</mat-icon>
+                  Voir documents
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+
+          <!-- Empty State -->
+          <div *ngIf="pendingVerifications.length === 0" class="empty-state">
+            <mat-icon>inbox</mat-icon>
+            <p>Aucune vérification en attente</p>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 2: History -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">history</mat-icon>
+          Historique
+        </ng-template>
+        
+        <div class="tab-content">
+          <!-- Filter -->
+          <div class="filter-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Filtrer par statut</mat-label>
+              <mat-select [(value)]="historyFilter" (selectionChange)="onFilterChange($event.value)">
+                <mat-option value="">Tous</mat-option>
+                <mat-option value="PENDING">En attente</mat-option>
+                <mat-option value="APPROVED">Approuvés</mat-option>
+                <mat-option value="REJECTED">Refusés</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Loading -->
+          <div *ngIf="isLoadingHistory" class="loading-container small">
+            <mat-spinner diameter="32"></mat-spinner>
+          </div>
+
+          <table mat-table [dataSource]="historyVerifications" class="full-width-table" *ngIf="!isLoadingHistory && historyVerifications.length > 0">
+            
+            <!-- Employee Column -->
+            <ng-container matColumnDef="employee">
+              <th mat-header-cell *matHeaderCellDef>Employé</th>
+              <td mat-cell *matCellDef="let v">
+                <div class="employee-cell">
+                  <strong>{{ v.employeeName || 'N/A' }}</strong>
+                  <small class="text-muted">{{ v.employeeId | slice:0:8 }}...</small>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Amount Column -->
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <td mat-cell *matCellDef="let v">
+                <strong>{{ v.amount }} TND</strong>
+              </td>
+            </ng-container>
+
+            <!-- Reference Column -->
+            <ng-container matColumnDef="reference">
+              <th mat-header-cell *matHeaderCellDef>Référence</th>
+              <td mat-cell *matCellDef="let v">
+                <code class="reference-code">{{ v.paymentReference || '-' }}</code>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Statut</th>
+              <td mat-cell *matCellDef="let v">
+                <span class="status-chip" [ngClass]="getStatusClass(v.status)">
+                  {{ getStatusLabel(v.status) }}
+                </span>
+                <small class="rejection-reason" *ngIf="v.status === 'REJECTED' && v.rejectionReason">
+                  {{ v.rejectionReason }}
+                </small>
+              </td>
+            </ng-container>
+
+            <!-- Date Column -->
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Date</th>
+              <td mat-cell *matCellDef="let v">{{ formatDate(v.requestedAt) }}</td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: historyColumns;"></tr>
+          </table>
+
+          <!-- Empty State -->
+          <div *ngIf="!isLoadingHistory && historyVerifications.length === 0" class="empty-state">
+            <mat-icon>inbox</mat-icon>
+            <p>Aucune vérification dans l'historique</p>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+</div>
+
+<!-- Documents Modal -->
+<div class="modal-overlay" *ngIf="showDocumentsModal" (click)="closeDocumentsModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Documents de {{ selectedVerification?.employeeName }}</h2>
+      <button mat-icon-button (click)="closeDocumentsModal()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    
+    <div class="modal-body" *ngIf="selectedVerification">
+      <div class="documents-grid">
+        <div class="document-card">
+          <h4>CIN Recto</h4>
+          <img [src]="selectedVerification.documentCinFront" alt="CIN Recto" class="doc-image">
+        </div>
+        <div class="document-card">
+          <h4>CIN Verso</h4>
+          <img [src]="selectedVerification.documentCinBack" alt="CIN Verso" class="doc-image">
+        </div>
+        <div class="document-card">
+          <h4>Selfie avec CIN</h4>
+          <img [src]="selectedVerification.documentSelfie" alt="Selfie" class="doc-image">
+        </div>
+        <div class="document-card" *ngIf="selectedVerification.documentDiploma">
+          <h4>Diplôme</h4>
+          <img [src]="selectedVerification.documentDiploma" alt="Diplôme" class="doc-image">
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button 
+        mat-stroked-button 
+        color="warn"
+        (click)="openRejectModal(selectedVerification!)"
+        [disabled]="processingId !== null">
+        <mat-icon>cancel</mat-icon>
+        Refuser
+      </button>
+      <button 
+        mat-raised-button 
+        color="primary"
+        (click)="approveVerification(selectedVerification!.id)"
+        [disabled]="processingId !== null">
+        <mat-icon>check_circle</mat-icon>
+        Approuver
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" *ngIf="showRejectModal" (click)="closeRejectModal()">
+  <div class="modal-container small" (click)="$event.stopPropagation()">
+    <div class="modal-header warn">
+      <mat-icon>warning</mat-icon>
+      <h2>Refuser la vérification</h2>
+      <button mat-icon-button (click)="closeRejectModal()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Motif du refus</mat-label>
+        <textarea 
+          matInput 
+          [(ngModel)]="rejectionReason"
+          rows="4"
+          placeholder="Expliquez pourquoi la demande est refusée...">
+        </textarea>
+      </mat-form-field>
+    </div>
+
+    <div class="modal-footer">
+      <button mat-button (click)="closeRejectModal()">Annuler</button>
+      <button 
+        mat-raised-button 
+        color="warn"
+        (click)="confirmReject()"
+        [disabled]="processingId !== null || !rejectionReason.trim()">
+        Confirmer le refus
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,210 @@
+<div class="settings-container">
+  <div class="page-header">
+    <h1>
+      <mat-icon>settings</mat-icon>
+      Configuration
+    </h1>
+    <p class="subtitle">Gérez les paramètres de la plateforme SNAY3I</p>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+    <p>Chargement des paramètres...</p>
+  </div>
+
+  <div class="settings-content" *ngIf="!isLoading">
+    <!-- Tab navigation -->
+    <mat-tab-group [(selectedIndex)]="activeTab" animationDuration="200ms">
+      
+      <!-- SET-02: Boost Prices Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>bolt</mat-icon>
+          Prix des Boosts
+        </ng-template>
+        
+        <div class="tab-content">
+          <div class="section-header">
+            <h2>Configuration des prix des Boosts</h2>
+            <p>Définissez les tarifs pour chaque type de boost proposé aux employés.</p>
+          </div>
+
+          <form [formGroup]="settingsForm" class="pricing-grid">
+            <mat-card *ngFor="let boost of boostPrices" class="pricing-card">
+              <mat-card-header>
+                <div mat-card-avatar class="boost-icon" [ngClass]="boost.type.toLowerCase()">
+                  <mat-icon>{{ getBoostIcon(boost.type) }}</mat-icon>
+                </div>
+                <mat-card-title>{{ boost.label }}</mat-card-title>
+                <mat-card-subtitle>Durée: {{ boost.duration }}</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <mat-form-field appearance="outline" class="price-field">
+                  <mat-label>Prix (TND)</mat-label>
+                  <input matInput type="number" 
+                         [formControlName]="boost.type === 'EXPRESS_24H' ? 'express24hPrice' : 
+                                           (boost.type === 'WEEK' ? 'weekPrice' : 'mega30dPrice')">
+                  <span matSuffix>TND</span>
+                </mat-form-field>
+              </mat-card-content>
+            </mat-card>
+          </form>
+
+          <div class="section-actions">
+            <button mat-raised-button color="primary" (click)="saveBoostPrices()" [disabled]="isSaving || settingsForm.invalid">
+              <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+              {{ isSaving ? 'Sauvegarde...' : 'Enregistrer les prix' }}
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- SET-03: Verification Price Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>verified</mat-icon>
+          Vérification
+        </ng-template>
+        
+        <div class="tab-content">
+          <div class="section-header">
+            <h2>Prix de la Vérification</h2>
+            <p>Définissez le tarif pour la vérification des employés.</p>
+          </div>
+
+          <mat-card class="verification-card">
+            <mat-card-header>
+              <div mat-card-avatar class="verification-icon">
+                <mat-icon>verified_user</mat-icon>
+              </div>
+              <mat-card-title>Vérification Employé</mat-card-title>
+              <mat-card-subtitle>Badge vérifié sur le profil</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="verification-benefits">
+                <div class="benefit">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Badge vérifié visible</span>
+                </div>
+                <div class="benefit">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Plus de confiance clients</span>
+                </div>
+                <div class="benefit">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Meilleur classement</span>
+                </div>
+              </div>
+              
+              <form [formGroup]="settingsForm">
+                <mat-form-field appearance="outline" class="price-field large">
+                  <mat-label>Prix de vérification</mat-label>
+                  <input matInput type="number" formControlName="verificationPrice">
+                  <span matSuffix>TND</span>
+                </mat-form-field>
+              </form>
+            </mat-card-content>
+          </mat-card>
+
+          <div class="section-actions">
+            <button mat-raised-button color="primary" (click)="saveVerificationPrice()" [disabled]="isSaving">
+              <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+              {{ isSaving ? 'Sauvegarde...' : 'Enregistrer' }}
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- SET-05: Payment Methods Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>payment</mat-icon>
+          Paiements
+        </ng-template>
+        
+        <div class="tab-content">
+          <div class="section-header">
+            <h2>Méthodes de Paiement</h2>
+            <p>Activez ou désactivez les méthodes de paiement disponibles.</p>
+          </div>
+
+          <div class="payment-methods-grid">
+            <mat-card *ngFor="let method of paymentMethods" class="payment-card" [class.disabled]="!method.enabled">
+              <mat-card-content>
+                <div class="payment-icon">
+                  <mat-icon>{{ getPaymentIcon(method.id) }}</mat-icon>
+                </div>
+                <h3>{{ method.name }}</h3>
+                <mat-slide-toggle 
+                  [checked]="method.enabled" 
+                  (change)="togglePaymentMethod(method)"
+                  color="primary">
+                  {{ method.enabled ? 'Activé' : 'Désactivé' }}
+                </mat-slide-toggle>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- General Settings Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>tune</mat-icon>
+          Général
+        </ng-template>
+        
+        <div class="tab-content">
+          <div class="section-header">
+            <h2>Paramètres Généraux</h2>
+            <p>Configuration générale de la plateforme.</p>
+          </div>
+
+          <div class="info-cards">
+            <mat-card class="info-card">
+              <mat-card-content>
+                <mat-icon>info</mat-icon>
+                <div class="info-text">
+                  <h4>Version de l'application</h4>
+                  <p>Admin Panel v1.0.0</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="info-card">
+              <mat-card-content>
+                <mat-icon>api</mat-icon>
+                <div class="info-text">
+                  <h4>API Backend</h4>
+                  <p>Connected</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="info-card">
+              <mat-card-content>
+                <mat-icon>location_on</mat-icon>
+                <div class="info-text">
+                  <h4>Région</h4>
+                  <p>Tunisie (24 gouvernorats)</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="info-card">
+              <mat-card-content>
+                <mat-icon>language</mat-icon>
+                <div class="info-text">
+                  <h4>Langue</h4>
+                  <p>Français</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>
+

@@ -1,0 +1,555 @@
+<div class="users-container">
+  <mat-tab-group (selectedTabChange)="onTabChange($event)" animationDuration="200ms">
+    <!-- Tab Clients -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">person</mat-icon>
+        Clients ({{ clientCount }})
+      </ng-template>
+      
+      <mat-card class="tab-content">
+        <mat-card-content>
+          <div class="toolbar">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Rechercher un client</mat-label>
+              <input matInput [(ngModel)]="searchQuery" (input)="filterUsers()" placeholder="Nom, email...">
+              <mat-icon matPrefix>search</mat-icon>
+            </mat-form-field>
+            
+            <span class="spacer"></span>
+            
+            <!-- USER-07: Export CSV button -->
+            <button mat-stroked-button (click)="exportClients()" matTooltip="Exporter en CSV" class="export-btn">
+              <mat-icon>download</mat-icon>
+              Exporter
+            </button>
+            
+            <button mat-raised-button color="primary" (click)="toggleAddClient()">
+              <mat-icon>{{ isAddingClient ? 'close' : 'person_add' }}</mat-icon>
+              {{ isAddingClient ? 'Annuler' : 'Ajouter un client' }}
+            </button>
+          </div>
+
+          <!-- Formulaire Client -->
+          <mat-card *ngIf="isAddingClient" class="form-card">
+            <mat-card-header>
+              <mat-card-title>{{ isEditingClient ? 'Modifier le client' : 'Nouveau client' }}</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <form [formGroup]="clientForm" class="crud-form">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nom complet</mat-label>
+                  <input matInput formControlName="name" placeholder="Nom et prénom">
+                  <mat-icon matPrefix>person</mat-icon>
+                  <mat-error *ngIf="clientForm.get('name')?.hasError('required')">Nom requis</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Email</mat-label>
+                  <input matInput type="email" formControlName="email" placeholder="email@exemple.com">
+                  <mat-icon matPrefix>email</mat-icon>
+                  <mat-error *ngIf="clientForm.get('email')?.hasError('email')">Email invalide</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Téléphone</mat-label>
+                  <input matInput formControlName="phone" placeholder="+216 XX XXX XXX">
+                  <mat-icon matPrefix>phone</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Mot de passe</mat-label>
+                  <input matInput type="password" formControlName="password" placeholder="Mot de passe pour connexion">
+                  <mat-icon matPrefix>lock</mat-icon>
+                  <mat-hint>{{ isEditingClient ? 'Laisser vide pour ne pas modifier' : 'Optionnel - Pour connexion par mot de passe' }}</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Gouvernorat</mat-label>
+                  <mat-select formControlName="governorate">
+                    <mat-option *ngFor="let gov of governorates" [value]="gov">{{ gov }}</mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>location_on</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Ville</mat-label>
+                  <input matInput formControlName="city" placeholder="Ville">
+                  <mat-icon matPrefix>location_city</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Adresse</mat-label>
+                  <input matInput formControlName="address" placeholder="Adresse complète">
+                  <mat-icon matPrefix>home</mat-icon>
+                </mat-form-field>
+
+                <div class="form-actions">
+                  <button mat-button type="button" (click)="cancelClientForm()">Annuler</button>
+                  <button mat-raised-button color="primary" type="button" (click)="saveClient()" 
+                          [disabled]="clientForm.invalid || isSavingClient">
+                    <mat-icon>{{ isSavingClient ? 'hourglass_empty' : 'save' }}</mat-icon>
+                    {{ isSavingClient ? 'Enregistrement...' : (isEditingClient ? 'Mettre à jour' : 'Créer') }}
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+          
+          <div class="table-container" *ngIf="!isLoading">
+            <table mat-table [dataSource]="clientsDataSource" class="users-table">
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>Nom</th>
+                <td mat-cell *matCellDef="let user">
+                  <div class="user-cell">
+                    <div class="avatar" [style.background-color]="getAvatarColor(user.name)">
+                      {{ user.name?.charAt(0)?.toUpperCase() || 'U' }}
+                    </div>
+                    <span>{{ user.name || 'Non renseigné' }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="email">
+                <th mat-header-cell *matHeaderCellDef>Email</th>
+                <td mat-cell *matCellDef="let user">{{ user.email || '-' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="phone">
+                <th mat-header-cell *matHeaderCellDef>Téléphone</th>
+                <td mat-cell *matCellDef="let user">{{ user.phone || '-' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="location">
+                <th mat-header-cell *matHeaderCellDef>Localisation</th>
+                <td mat-cell *matCellDef="let user">
+                  {{ user.governorate ? user.governorate + ', ' + (user.city || '') : '-' }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Statut</th>
+                <td mat-cell *matCellDef="let user">
+                  <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+                    {{ user.isActive ? 'Actif' : 'Inactif' }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="createdAt">
+                <th mat-header-cell *matHeaderCellDef>Inscription</th>
+                <td mat-cell *matCellDef="let user">
+                  {{ user.createdAt | date: 'dd/MM/yyyy' }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let user">
+                  <button mat-icon-button [matMenuTriggerFor]="userMenu" class="action-btn">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #userMenu="matMenu">
+                    <button mat-menu-item (click)="editClient(user)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Modifier</span>
+                    </button>
+                    <button mat-menu-item (click)="toggleUserStatus(user)">
+                      <mat-icon>{{ user.isActive ? 'block' : 'check_circle' }}</mat-icon>
+                      <span>{{ user.isActive ? 'Désactiver' : 'Activer' }}</span>
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item (click)="deleteClient(user)" class="delete-action">
+                      <mat-icon>delete</mat-icon>
+                      <span>Supprimer</span>
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="clientColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: clientColumns;"></tr>
+            </table>
+
+            <div class="empty-state" *ngIf="clientsDataSource.data.length === 0">
+              <mat-icon>person_off</mat-icon>
+              <p>Aucun client trouvé</p>
+              <button mat-stroked-button color="primary" (click)="toggleAddClient()">
+                Ajouter le premier client
+              </button>
+            </div>
+          </div>
+
+          <div class="loading-spinner" *ngIf="isLoading">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+
+          <mat-paginator
+            [length]="clientCount"
+            [pageSize]="pageSize"
+            [pageSizeOptions]="[10, 20, 50]"
+            (page)="onPageChange($event, 'CLIENT')">
+          </mat-paginator>
+        </mat-card-content>
+      </mat-card>
+    </mat-tab>
+
+    <!-- Tab Employés -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">engineering</mat-icon>
+        Employés ({{ employeeCount }})
+      </ng-template>
+      
+      <mat-card class="tab-content">
+        <mat-card-content>
+          <div class="toolbar">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Rechercher un employé</mat-label>
+              <input matInput [(ngModel)]="searchQueryEmployee" (input)="filterEmployees()" placeholder="Nom, profession, email...">
+              <mat-icon matPrefix>search</mat-icon>
+            </mat-form-field>
+            
+            <!-- USER-01: Status filter -->
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Statut</mat-label>
+              <mat-select [(ngModel)]="selectedStatusFilter" (selectionChange)="onEmployeeFilterChange()">
+                <mat-option *ngFor="let status of statusOptions" [value]="status.value">
+                  {{ status.label }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- USER-02: Governorate filter -->
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Gouvernorat</mat-label>
+              <mat-select [(ngModel)]="selectedGovernorateFilter" (selectionChange)="onEmployeeFilterChange()">
+                <mat-option value="">Tous les gouvernorats</mat-option>
+                <mat-option *ngFor="let gov of governorates" [value]="gov">{{ gov }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- USER-03: Profession filter -->
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Profession</mat-label>
+              <mat-select [(ngModel)]="selectedProfessionFilter" (selectionChange)="onEmployeeFilterChange()">
+                <mat-option value="">Toutes les professions</mat-option>
+                <mat-option *ngFor="let cat of categories" [value]="cat.name">{{ cat.name }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <button mat-icon-button *ngIf="hasActiveFilters()" (click)="clearEmployeeFilters()" 
+                    matTooltip="Effacer les filtres" class="clear-filters-btn">
+              <mat-icon>filter_alt_off</mat-icon>
+            </button>
+
+            <span class="spacer"></span>
+
+            <!-- USER-07: Export CSV button -->
+            <button mat-stroked-button (click)="exportEmployees()" matTooltip="Exporter en CSV" class="export-btn">
+              <mat-icon>download</mat-icon>
+              Exporter
+            </button>
+            
+            <button mat-raised-button color="primary" (click)="toggleAddEmployee()">
+              <mat-icon>{{ isAddingEmployee ? 'close' : 'person_add' }}</mat-icon>
+              {{ isAddingEmployee ? 'Annuler' : 'Ajouter un employé' }}
+            </button>
+          </div>
+
+          <!-- Active filters indicator -->
+          <div class="active-filters" *ngIf="hasActiveFilters()">
+            <mat-chip-listbox>
+              <mat-chip *ngIf="selectedStatusFilter" (removed)="selectedStatusFilter = ''; onEmployeeFilterChange()">
+                Statut: {{ selectedStatusFilter }}
+                <mat-icon matChipRemove>cancel</mat-icon>
+              </mat-chip>
+              <mat-chip *ngIf="selectedGovernorateFilter" (removed)="selectedGovernorateFilter = ''; onEmployeeFilterChange()">
+                {{ selectedGovernorateFilter }}
+                <mat-icon matChipRemove>cancel</mat-icon>
+              </mat-chip>
+              <mat-chip *ngIf="selectedProfessionFilter" (removed)="selectedProfessionFilter = ''; onEmployeeFilterChange()">
+                {{ selectedProfessionFilter }}
+                <mat-icon matChipRemove>cancel</mat-icon>
+              </mat-chip>
+            </mat-chip-listbox>
+            <span class="results-count">{{ employeesDataSource.data.length }} résultat(s)</span>
+          </div>
+
+          <!-- Formulaire Employé -->
+          <mat-card *ngIf="isAddingEmployee" class="form-card">
+            <mat-card-header>
+              <mat-card-title>{{ isEditingEmployee ? 'Modifier l\'employé' : 'Nouvel employé' }}</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <form [formGroup]="employeeForm" class="crud-form">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nom complet</mat-label>
+                  <input matInput formControlName="name" placeholder="Nom et prénom">
+                  <mat-icon matPrefix>person</mat-icon>
+                  <mat-error *ngIf="employeeForm.get('name')?.hasError('required')">Nom requis</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Email</mat-label>
+                  <input matInput type="email" formControlName="email" placeholder="email@exemple.com">
+                  <mat-icon matPrefix>email</mat-icon>
+                  <mat-error *ngIf="employeeForm.get('email')?.hasError('email')">Email invalide</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Téléphone</mat-label>
+                  <input matInput formControlName="phone" placeholder="+216 XX XXX XXX">
+                  <mat-icon matPrefix>phone</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Mot de passe</mat-label>
+                  <input matInput type="password" formControlName="password" placeholder="Mot de passe pour connexion">
+                  <mat-icon matPrefix>lock</mat-icon>
+                  <mat-hint>{{ isEditingEmployee ? 'Laisser vide pour ne pas modifier' : 'Optionnel - Pour connexion par mot de passe' }}</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Profession</mat-label>
+                  <mat-select formControlName="profession">
+                    <mat-option *ngFor="let category of categories" [value]="category.name">
+                      <mat-icon *ngIf="category.icon">{{ category.icon }}</mat-icon>
+                      {{ category.name }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>work</mat-icon>
+                  <mat-error *ngIf="employeeForm.get('profession')?.hasError('required')">Profession requise</mat-error>
+                  <mat-hint *ngIf="categories.length === 0">Aucune catégorie disponible</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Description</mat-label>
+                  <textarea matInput formControlName="description" placeholder="Description du profil" rows="3"></textarea>
+                  <mat-icon matPrefix>description</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Gouvernorat</mat-label>
+                  <mat-select formControlName="governorate">
+                    <mat-option *ngFor="let gov of governorates" [value]="gov">{{ gov }}</mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>location_on</mat-icon>
+                  <mat-error *ngIf="employeeForm.get('governorate')?.hasError('required')">Gouvernorat requis</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Ville</mat-label>
+                  <input matInput formControlName="city" placeholder="Ville">
+                  <mat-icon matPrefix>location_city</mat-icon>
+                  <mat-error *ngIf="employeeForm.get('city')?.hasError('required')">Ville requise</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Adresse</mat-label>
+                  <input matInput formControlName="address" placeholder="Adresse complète">
+                  <mat-icon matPrefix>home</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Années d'expérience</mat-label>
+                  <input matInput type="number" formControlName="experienceYears" placeholder="5">
+                  <mat-icon matPrefix>history</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Prix min (TND)</mat-label>
+                  <input matInput formControlName="minPrice" placeholder="50">
+                  <mat-icon matPrefix>payments</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Prix max (TND)</mat-label>
+                  <input matInput formControlName="maxPrice" placeholder="150">
+                  <mat-icon matPrefix>payments</mat-icon>
+                </mat-form-field>
+
+                <div class="form-actions">
+                  <button mat-button type="button" (click)="cancelEmployeeForm()">Annuler</button>
+                  <button mat-raised-button color="primary" type="button" (click)="saveEmployee()" 
+                          [disabled]="employeeForm.invalid || isSavingEmployee">
+                    <mat-icon>{{ isSavingEmployee ? 'hourglass_empty' : 'save' }}</mat-icon>
+                    {{ isSavingEmployee ? 'Enregistrement...' : (isEditingEmployee ? 'Mettre à jour' : 'Créer') }}
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+          
+          <div class="table-container" *ngIf="!isLoadingEmployees">
+            <table mat-table [dataSource]="employeesDataSource" class="users-table">
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>Nom</th>
+                <td mat-cell *matCellDef="let emp">
+                  <div class="user-cell">
+                    <div class="avatar employee" [style.background-color]="getAvatarColor(emp.name)">
+                      {{ emp.name?.charAt(0)?.toUpperCase() || 'E' }}
+                    </div>
+                    <span>{{ emp.name || 'Non renseigné' }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="profession">
+                <th mat-header-cell *matHeaderCellDef>Profession</th>
+                <td mat-cell *matCellDef="let emp">{{ emp.profession || '-' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="email">
+                <th mat-header-cell *matHeaderCellDef>Email</th>
+                <td mat-cell *matCellDef="let emp">{{ emp.email || '-' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="rating">
+                <th mat-header-cell *matHeaderCellDef>Note</th>
+                <td mat-cell *matCellDef="let emp">
+                  <div class="rating">
+                    <mat-icon class="star">star</mat-icon>
+                    <span>{{ emp.rating?.toFixed(1) || '0.0' }}</span>
+                    <span class="review-count">({{ emp.reviewCount || 0 }})</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Statut</th>
+                <td mat-cell *matCellDef="let emp">
+                  <span class="status-badge" [ngClass]="getEmployeeStatusClass(emp.status)">
+                    {{ getEmployeeStatusLabel(emp.status) }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="verified">
+                <th mat-header-cell *matHeaderCellDef>Vérifié</th>
+                <td mat-cell *matCellDef="let emp">
+                  <mat-icon [class.verified]="emp.isVerified" [class.not-verified]="!emp.isVerified">
+                    {{ emp.isVerified ? 'verified' : 'cancel' }}
+                  </mat-icon>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let emp">
+                  <button mat-icon-button [matMenuTriggerFor]="empMenu" class="action-btn">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #empMenu="matMenu">
+                    <button mat-menu-item (click)="editEmployee(emp)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Modifier</span>
+                    </button>
+                    <!-- USER-04: Service zones button -->
+                    <button mat-menu-item (click)="openZonesModal(emp)">
+                      <mat-icon>map</mat-icon>
+                      <span>Zones de service</span>
+                    </button>
+                    <button mat-menu-item (click)="verifyEmployee(emp)" *ngIf="!emp.isVerified">
+                      <mat-icon>verified</mat-icon>
+                      <span>Vérifier</span>
+                    </button>
+                    <button mat-menu-item (click)="updateEmployeeStatus(emp, 'active')" *ngIf="emp.status !== 'active'">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Activer</span>
+                    </button>
+                    <button mat-menu-item (click)="updateEmployeeStatus(emp, 'suspended')" *ngIf="emp.status !== 'suspended'">
+                      <mat-icon>block</mat-icon>
+                      <span>Suspendre</span>
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item (click)="deleteEmployee(emp)" class="delete-action">
+                      <mat-icon>delete</mat-icon>
+                      <span>Supprimer</span>
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="employeeColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: employeeColumns;"></tr>
+            </table>
+
+            <div class="empty-state" *ngIf="employeesDataSource.data.length === 0">
+              <mat-icon>engineering</mat-icon>
+              <p>Aucun employé trouvé</p>
+              <button mat-stroked-button color="primary" (click)="toggleAddEmployee()">
+                Ajouter le premier employé
+              </button>
+            </div>
+          </div>
+
+          <div class="loading-spinner" *ngIf="isLoadingEmployees">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+
+          <mat-paginator
+            [length]="employeeCount"
+            [pageSize]="pageSize"
+            [pageSizeOptions]="[10, 20, 50]"
+            (page)="onPageChange($event, 'EMPLOYEE')">
+          </mat-paginator>
+        </mat-card-content>
+      </mat-card>
+    </mat-tab>
+  </mat-tab-group>
+
+  <!-- USER-04: Service Zones Modal -->
+  <div class="modal-overlay" *ngIf="showZonesModal" (click)="closeZonesModal()">
+    <div class="modal-content zones-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <mat-icon>map</mat-icon>
+          Zones de service
+        </h3>
+        <button mat-icon-button (click)="closeZonesModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="employee-info" *ngIf="selectedEmployeeForZones">
+          <div class="avatar" [style.background-color]="getAvatarColor(selectedEmployeeForZones.name)">
+            {{ selectedEmployeeForZones.name?.charAt(0)?.toUpperCase() || 'E' }}
+          </div>
+          <div class="info">
+            <strong>{{ selectedEmployeeForZones.name }}</strong>
+            <span>{{ selectedEmployeeForZones.profession }}</span>
+          </div>
+        </div>
+
+        <p class="zones-instruction">
+          Sélectionnez les gouvernorats où cet employé peut intervenir :
+        </p>
+
+        <div class="zones-grid">
+          <div 
+            *ngFor="let gov of governorates" 
+            class="zone-chip" 
+            [class.selected]="isZoneSelected(gov)"
+            (click)="toggleZone(gov)">
+            <mat-icon>{{ isZoneSelected(gov) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>{{ gov }}</span>
+          </div>
+        </div>
+
+        <div class="selected-count">
+          {{ selectedServiceZones.length }} zone(s) sélectionnée(s)
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button mat-button (click)="closeZonesModal()">Annuler</button>
+        <button mat-raised-button color="primary" (click)="saveServiceZones()" [disabled]="isSavingZones || selectedServiceZones.length === 0">
+          <mat-icon>{{ isSavingZones ? 'hourglass_empty' : 'save' }}</mat-icon>
+          {{ isSavingZones ? 'Sauvegarde...' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,203 @@
+<div class="reviews-container">
+  <div class="header">
+    <h1>
+      <mat-icon>star</mat-icon>
+      Gestion des Avis
+    </h1>
+    <button mat-raised-button color="primary" (click)="loadReviews()">
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- REV-05: Global stats cards -->
+  <div class="stats-row" *ngIf="!isLoading">
+    <mat-card class="stat-card average-card">
+      <mat-card-content>
+        <div class="average-rating">
+          <span class="rating-value">{{ averageRating }}</span>
+          <div class="rating-info">
+            <div class="stars">
+              <mat-icon *ngFor="let i of [1,2,3,4,5]" 
+                [class.filled]="i <= averageRating">
+                {{ i <= averageRating ? 'star' : 'star_border' }}
+              </mat-icon>
+            </div>
+            <span class="total">{{ totalReviews }} avis</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card distribution-card">
+      <mat-card-content>
+        <div class="distribution">
+          <div class="bar-row" *ngFor="let count of ratingDistribution; let i = index">
+            <span class="bar-label">{{ 5 - i }} ★</span>
+            <div class="bar-track">
+              <div class="bar-fill" [style.width.%]="getRatingPercentage(4 - i)"></div>
+            </div>
+            <span class="bar-count">{{ ratingDistribution[4 - i] }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- REV-01, REV-02: Filters row -->
+  <div class="filters-row">
+    <!-- REV-01: Rating filter -->
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Note minimum</mat-label>
+      <mat-select [(ngModel)]="filterRating" (selectionChange)="onFilterChange()">
+        <mat-option *ngFor="let opt of ratingOptions" [value]="opt.value">
+          {{ opt.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- REV-02: Employee filter -->
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Employé</mat-label>
+      <input matInput [(ngModel)]="filterEmployee" (input)="onFilterChange()" placeholder="Rechercher...">
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <!-- REV-03: Visibility filter -->
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Visibilité</mat-label>
+      <mat-select [(ngModel)]="filterVisibility" (selectionChange)="onFilterChange()">
+        <mat-option value="">Tous</mat-option>
+        <mat-option value="visible">Visibles</mat-option>
+        <mat-option value="hidden">Masqués</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-icon-button *ngIf="hasActiveFilters()" (click)="clearFilters()" 
+            matTooltip="Effacer les filtres" class="clear-filters-btn">
+      <mat-icon>filter_alt_off</mat-icon>
+    </button>
+  </div>
+
+  <!-- Filter summary -->
+  <div class="filter-summary" *ngIf="hasActiveFilters()">
+    <span class="results-count">{{ dataSource.data.length }} avis trouvé(s)</span>
+    <div class="active-filter-tags">
+      <span class="filter-tag" *ngIf="filterRating > 0">
+        {{ getRatingLabel() }}
+        <mat-icon (click)="filterRating = 0; onFilterChange()">close</mat-icon>
+      </span>
+      <span class="filter-tag" *ngIf="filterEmployee">
+        Employé: {{ filterEmployee }}
+        <mat-icon (click)="filterEmployee = ''; onFilterChange()">close</mat-icon>
+      </span>
+      <span class="filter-tag" *ngIf="filterVisibility">
+        {{ filterVisibility === 'visible' ? 'Visibles' : 'Masqués' }}
+        <mat-icon (click)="filterVisibility = ''; onFilterChange()">close</mat-icon>
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Chargement des avis...</p>
+  </div>
+
+  <mat-card *ngIf="!isLoading">
+    <mat-card-content>
+      <!-- Empty state -->
+      <div class="empty-state" *ngIf="dataSource.data.length === 0">
+        <div class="empty-icon">
+          <mat-icon>rate_review</mat-icon>
+        </div>
+        <h3>Aucun avis trouvé</h3>
+        <p *ngIf="hasActiveFilters()">Essayez de modifier vos filtres</p>
+        <p *ngIf="!hasActiveFilters()">Il n'y a pas encore d'avis dans le système</p>
+      </div>
+
+      <div class="table-container" *ngIf="dataSource.data.length > 0">
+        <table mat-table [dataSource]="dataSource" class="reviews-table">
+          <ng-container matColumnDef="userName">
+            <th mat-header-cell *matHeaderCellDef>Client</th>
+            <td mat-cell *matCellDef="let review">{{ review.userName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="employeeName">
+            <th mat-header-cell *matHeaderCellDef>Employé</th>
+            <td mat-cell *matCellDef="let review">{{ review.employeeName || '-' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="rating">
+            <th mat-header-cell *matHeaderCellDef>Note</th>
+            <td mat-cell *matCellDef="let review">
+              <div class="rating-cell">
+                <mat-icon *ngFor="let i of [1,2,3,4,5]" 
+                  [color]="i <= review.rating ? 'primary' : ''">
+                  {{ i <= review.rating ? 'star' : 'star_border' }}
+                </mat-icon>
+                <span>{{ review.rating }}/5</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="comment">
+            <th mat-header-cell *matHeaderCellDef>Commentaire</th>
+            <td mat-cell *matCellDef="let review">
+              <div class="comment-cell">
+                {{ review.comment.length > 100 ? review.comment.substring(0, 100) + '...' : review.comment }}
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="visible">
+            <th mat-header-cell *matHeaderCellDef>Visible</th>
+            <td mat-cell *matCellDef="let review">
+              <mat-icon [color]="review.isVisible ? 'primary' : ''">
+                {{ review.isVisible ? 'visibility' : 'visibility_off' }}
+              </mat-icon>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Date</th>
+            <td mat-cell *matCellDef="let review">
+              {{ review.createdAt | date: 'dd/MM/yyyy' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let review">
+              <button
+                mat-icon-button
+                [color]="review.isVisible ? 'warn' : 'primary'"
+                (click)="toggleVisibility(review)"
+                [matTooltip]="review.isVisible ? 'Masquer' : 'Afficher'">
+                <mat-icon>{{ review.isVisible ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+
+        <mat-paginator
+          [length]="totalElements"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[10, 20, 50, 100]"
+          (page)="onPageChange($event)">
+        </mat-paginator>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- Debug info (remove in production) -->
+<!-- <pre>{{ allReviews | json }}</pre> -->
+
+
+
+
+

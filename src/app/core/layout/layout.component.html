@@ -1,0 +1,181 @@
+<mat-sidenav-container class="sidenav-container">
+  <!-- Sidebar -->
+  <mat-sidenav
+    #sidenav
+    mode="side"
+    opened
+    class="sidenav"
+    [style.width]="'260px'">
+    
+    <!-- Header -->
+    <div class="sidenav-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <img src="/logo.png" alt="" class="brand-logo-img" width="40" height="40" />
+        </div>
+        <div class="logo-text">
+          <h2>SNAY3I</h2>
+          <p class="subtitle">Admin Panel</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-wrapper">
+      <nav class="nav-list">
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>dashboard</mat-icon></span>
+          <span class="nav-label">Tableau de bord</span>
+        </a>
+        
+        <div class="nav-section">
+          <span class="section-title">Utilisateurs</span>
+        </div>
+        
+        <a routerLink="/users" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>people</mat-icon></span>
+          <span class="nav-label">Clients & Employés</span>
+        </a>
+        
+        <a routerLink="/admins" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>admin_panel_settings</mat-icon></span>
+          <span class="nav-label">Administrateurs</span>
+        </a>
+        
+        <div class="nav-section">
+          <span class="section-title">Activités</span>
+        </div>
+        
+        <a routerLink="/requests" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>assignment</mat-icon></span>
+          <span class="nav-label">Demandes</span>
+        </a>
+        
+        <a routerLink="/reservations" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>event</mat-icon></span>
+          <span class="nav-label">Réservations</span>
+        </a>
+        
+        <a routerLink="/reviews" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>star</mat-icon></span>
+          <span class="nav-label">Avis</span>
+        </a>
+        
+        <div class="nav-section">
+          <span class="section-title">Monétisation</span>
+        </div>
+        
+        <!-- NOTIF-02: Boosts with pending badge -->
+        <a routerLink="/boosts" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>bolt</mat-icon></span>
+          <span class="nav-label">Boosts</span>
+          <span class="nav-badge warning" *ngIf="pendingBoostsCount > 0">{{ pendingBoostsCount }}</span>
+        </a>
+        
+        <!-- NOTIF-02: Verifications with pending badge -->
+        <a routerLink="/verifications" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>verified</mat-icon></span>
+          <span class="nav-label">Vérifications</span>
+          <span class="nav-badge success" *ngIf="pendingVerificationsCount > 0">{{ pendingVerificationsCount }}</span>
+        </a>
+        
+        <div class="nav-section">
+          <span class="section-title">Configuration</span>
+        </div>
+        
+        <a routerLink="/categories" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>category</mat-icon></span>
+          <span class="nav-label">Catégories</span>
+        </a>
+
+        <!-- SET-01: Settings page link -->
+        <a routerLink="/settings" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon"><mat-icon>settings</mat-icon></span>
+          <span class="nav-label">Paramètres</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Footer -->
+    <div class="sidenav-footer">
+      <div class="user-card">
+        <div class="user-avatar">
+          <mat-icon>person</mat-icon>
+        </div>
+        <div class="user-info-sidebar">
+          <span class="user-name">{{ authService.getCurrentUser()?.name || 'Admin' }}</span>
+          <span class="user-email">{{ authService.getCurrentUser()?.email || 'admin@snay3i.tn' }}</span>
+        </div>
+      </div>
+      <button mat-button (click)="logout()" class="logout-btn">
+        <mat-icon>logout</mat-icon>
+        <span>Déconnexion</span>
+      </button>
+    </div>
+  </mat-sidenav>
+
+  <!-- Main Content -->
+  <mat-sidenav-content>
+    <mat-toolbar color="primary" class="toolbar">
+      <button mat-icon-button (click)="sidenav.toggle()" class="menu-btn">
+        <mat-icon>menu</mat-icon>
+      </button>
+      
+      <span class="toolbar-title">Administration SNAY3I</span>
+      
+      <span class="spacer"></span>
+      
+      <div class="toolbar-actions">
+        <!-- NOTIF-01: Functional notification button with dropdown -->
+        <div class="notification-wrapper">
+          <button mat-icon-button class="notification-btn" (click)="toggleNotifications()">
+            <mat-icon>notifications</mat-icon>
+            <span class="badge" *ngIf="totalPendingCount > 0">{{ totalPendingCount > 9 ? '9+' : totalPendingCount }}</span>
+          </button>
+          
+          <!-- NOTIF-01: Notification dropdown -->
+          <div class="notification-dropdown" *ngIf="showNotifications" (click)="$event.stopPropagation()">
+            <div class="dropdown-header">
+              <span>Notifications</span>
+              <button mat-icon-button (click)="closeNotifications()" class="close-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <div class="dropdown-content">
+              <a *ngFor="let notif of notifications" 
+                 [routerLink]="notif.link" 
+                 class="notification-item"
+                 [class.warning]="notif.color === 'warning'"
+                 [class.success]="notif.color === 'success'"
+                 (click)="closeNotifications()">
+                <div class="notif-icon">
+                  <mat-icon>{{ notif.icon }}</mat-icon>
+                </div>
+                <span class="notif-message">{{ notif.message }}</span>
+                <mat-icon class="arrow">arrow_forward</mat-icon>
+              </a>
+              <div *ngIf="notifications.length === 0" class="empty-state">
+                <mat-icon>check_circle</mat-icon>
+                <span>Aucune action en attente</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="user-info">
+          <div class="avatar">
+            <mat-icon>person</mat-icon>
+          </div>
+          <div class="user-details">
+            <span class="user-name">{{ authService.getCurrentUser()?.name || 'Admin' }}</span>
+            <span class="user-role">Administrateur</span>
+          </div>
+        </div>
+      </div>
+    </mat-toolbar>
+
+    <div class="content">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

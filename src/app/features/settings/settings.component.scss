@@ -1,0 +1,373 @@
+.settings-container {
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .page-header {
+    margin-bottom: 32px;
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+
+      mat-icon {
+        color: var(--primary);
+        font-size: 36px;
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px;
+    
+    ::ng-deep .mat-mdc-progress-spinner circle {
+      stroke: var(--primary);
+    }
+
+    p {
+      margin-top: 20px;
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+  }
+
+  .settings-content {
+    ::ng-deep {
+      .mat-mdc-tab-header {
+        background: white;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: 8px 16px 0;
+        border: 1px solid var(--divider);
+        border-bottom: none;
+      }
+
+      .mat-mdc-tab {
+        min-width: 140px;
+        height: 56px;
+        
+        .mdc-tab__text-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 500;
+        }
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .mat-mdc-tab-body-wrapper {
+        background: white;
+        border: 1px solid var(--divider);
+        border-top: none;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+      }
+    }
+  }
+
+  .tab-content {
+    padding: 32px;
+  }
+
+  .section-header {
+    margin-bottom: 28px;
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+  }
+
+  .section-actions {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--divider);
+
+    button {
+      height: 48px;
+      padding: 0 32px;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+
+      mat-icon {
+        margin-right: 8px;
+      }
+
+      &[color="primary"] {
+        background: var(--gradient-primary);
+      }
+    }
+  }
+
+  // Pricing Grid
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .pricing-card {
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--divider);
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    mat-card-header {
+      padding-bottom: 16px;
+    }
+
+    .boost-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        color: white;
+      }
+
+      &.express_24h {
+        background: linear-gradient(135deg, #F59E0B, #D97706);
+      }
+
+      &.week {
+        background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+      }
+
+      &.mega_30d {
+        background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+      }
+    }
+
+    mat-card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    mat-card-subtitle {
+      font-size: 13px;
+    }
+
+    .price-field {
+      width: 100%;
+      margin-top: 8px;
+
+      ::ng-deep {
+        .mat-mdc-text-field-wrapper {
+          border-radius: var(--radius-sm);
+        }
+
+        input {
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  // Verification Card
+  .verification-card {
+    max-width: 500px;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--divider);
+
+    .verification-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #10B981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+        color: white;
+      }
+    }
+
+    .verification-benefits {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 20px 0;
+      padding: 16px;
+      background: var(--success-light);
+      border-radius: var(--radius-md);
+
+      .benefit {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #047857;
+        font-size: 14px;
+        font-weight: 500;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: #10B981;
+        }
+      }
+    }
+
+    .price-field.large {
+      width: 100%;
+
+      ::ng-deep input {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+    }
+  }
+
+  // Payment Methods
+  .payment-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .payment-card {
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--divider);
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+
+    &.disabled {
+      opacity: 0.6;
+      background: var(--bg-light);
+    }
+
+    mat-card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 24px !important;
+    }
+
+    .payment-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        color: white;
+      }
+    }
+
+    h3 {
+      margin: 0 0 16px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    mat-slide-toggle {
+      ::ng-deep .mdc-label {
+        font-size: 13px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // Info Cards
+  .info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+
+  .info-card {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--divider);
+
+    mat-card-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px !important;
+
+      > mat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
+        background: linear-gradient(135deg, rgba(0, 153, 204, 0.1), rgba(6, 116, 135, 0.05));
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+      }
+    }
+
+    .info-text {
+      h4 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+    }
+  }
+}
+

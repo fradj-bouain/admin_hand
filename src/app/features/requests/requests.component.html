@@ -1,0 +1,476 @@
+<div class="requests-container">
+  <div class="header">
+    <h1>
+      <mat-icon>assignment</mat-icon>
+      Gestion des Demandes
+    </h1>
+    
+    <button mat-icon-button (click)="loadRequests()" matTooltip="Rafraîchir">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <!-- REQ-01, REQ-02, REQ-03: Enhanced filters row -->
+  <div class="filters-row">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Statut</mat-label>
+      <mat-select [(ngModel)]="selectedStatus" (selectionChange)="onStatusFilterChange()">
+        <mat-option value="">Tous les statuts</mat-option>
+        <mat-option value="pending">En attente</mat-option>
+        <mat-option value="accepted">Acceptées</mat-option>
+        <mat-option value="in_progress">En cours</mat-option>
+        <mat-option value="completed">Terminées</mat-option>
+        <mat-option value="cancelled">Annulées</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- REQ-01: Governorate filter -->
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Gouvernorat</mat-label>
+      <mat-select [(ngModel)]="selectedGovernorate" (selectionChange)="onFilterChange()">
+        <mat-option value="">Tous les gouvernorats</mat-option>
+        <mat-option *ngFor="let gov of governorates" [value]="gov">{{ gov }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- REQ-03: Profession filter -->
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Profession</mat-label>
+      <mat-select [(ngModel)]="selectedProfession" (selectionChange)="onFilterChange()">
+        <mat-option value="">Toutes les professions</mat-option>
+        <mat-option *ngFor="let cat of categories" [value]="cat.name">{{ cat.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- REQ-02: Date range filter -->
+    <mat-form-field appearance="outline" class="filter-field date-field">
+      <mat-label>Du</mat-label>
+      <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" (dateChange)="onFilterChange()">
+      <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+      <mat-datepicker #startPicker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field date-field">
+      <mat-label>Au</mat-label>
+      <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" (dateChange)="onFilterChange()">
+      <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+      <mat-datepicker #endPicker></mat-datepicker>
+    </mat-form-field>
+
+    <button mat-icon-button *ngIf="hasActiveFilters()" (click)="clearFilters()" 
+            matTooltip="Effacer les filtres" class="clear-filters-btn">
+      <mat-icon>filter_alt_off</mat-icon>
+    </button>
+
+    <span class="spacer"></span>
+
+    <!-- REQ-05: Export CSV button -->
+    <button mat-stroked-button (click)="exportRequests()" matTooltip="Exporter en CSV" class="export-btn">
+      <mat-icon>download</mat-icon>
+      Exporter
+    </button>
+  </div>
+
+  <!-- Active filters summary -->
+  <div class="filter-summary" *ngIf="hasActiveFilters()">
+    <span class="results-count">{{ dataSource.data.length }} demande(s) trouvée(s)</span>
+    <div class="active-filter-tags">
+      <span class="filter-tag" *ngIf="selectedStatus">
+        Statut: {{ getStatusLabel(selectedStatus) }}
+        <mat-icon (click)="selectedStatus = ''; onStatusFilterChange()">close</mat-icon>
+      </span>
+      <span class="filter-tag" *ngIf="selectedGovernorate">
+        {{ selectedGovernorate }}
+        <mat-icon (click)="selectedGovernorate = ''; onFilterChange()">close</mat-icon>
+      </span>
+      <span class="filter-tag" *ngIf="selectedProfession">
+        {{ selectedProfession }}
+        <mat-icon (click)="selectedProfession = ''; onFilterChange()">close</mat-icon>
+      </span>
+      <span class="filter-tag" *ngIf="startDate || endDate">
+        {{ startDate | date:'dd/MM' }} - {{ endDate | date:'dd/MM' }}
+        <mat-icon (click)="startDate = null; endDate = null; onFilterChange()">close</mat-icon>
+      </span>
+    </div>
+  </div>
+
+  <!-- Detail/Edit View -->
+  <mat-card *ngIf="selectedRequest" class="detail-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>{{ isEditing ? 'edit' : 'assignment' }}</mat-icon>
+        {{ isEditing ? 'Modifier la demande' : 'Détails de la demande' }}
+      </mat-card-title>
+      <div class="header-buttons">
+        <button mat-icon-button (click)="toggleEdit()" [matTooltip]="isEditing ? 'Annuler' : 'Modifier'" [color]="isEditing ? 'warn' : 'primary'">
+          <mat-icon>{{ isEditing ? 'close' : 'edit' }}</mat-icon>
+        </button>
+        <button mat-icon-button (click)="closeDetails()" matTooltip="Fermer">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <!-- VIEW MODE -->
+      <div class="detail-grid" *ngIf="!isEditing">
+        <!-- Client Info -->
+        <div class="detail-section client-section">
+          <h3><mat-icon>person</mat-icon> Client</h3>
+          <div class="person-card" *ngIf="selectedRequest.client">
+            <div class="avatar">
+              <mat-icon>account_circle</mat-icon>
+            </div>
+            <div class="info">
+              <div class="name">{{ selectedRequest.client.name || 'Non spécifié' }}</div>
+              <div class="contact" *ngIf="selectedRequest.client.email">
+                <mat-icon>email</mat-icon> {{ selectedRequest.client.email }}
+              </div>
+              <div class="contact" *ngIf="selectedRequest.client.phone">
+                <mat-icon>phone</mat-icon> {{ selectedRequest.client.phone }}
+              </div>
+            </div>
+          </div>
+          <p class="no-data" *ngIf="!selectedRequest.client">Informations client non disponibles</p>
+        </div>
+
+        <!-- Employee Info -->
+        <div class="detail-section employee-section">
+          <h3><mat-icon>engineering</mat-icon> Employé assigné</h3>
+          <div class="person-card" *ngIf="selectedRequest.employee">
+            <div class="avatar verified" *ngIf="selectedRequest.employee.isVerified">
+              <mat-icon>verified</mat-icon>
+            </div>
+            <div class="avatar" *ngIf="!selectedRequest.employee.isVerified">
+              <mat-icon>person</mat-icon>
+            </div>
+            <div class="info">
+              <div class="name">{{ selectedRequest.employee.name }}</div>
+              <div class="profession">{{ selectedRequest.employee.profession }}</div>
+              <div class="contact" *ngIf="selectedRequest.employee.email">
+                <mat-icon>email</mat-icon> {{ selectedRequest.employee.email }}
+              </div>
+              <div class="contact" *ngIf="selectedRequest.employee.phone">
+                <mat-icon>phone</mat-icon> {{ selectedRequest.employee.phone }}
+              </div>
+            </div>
+          </div>
+          <p class="no-data" *ngIf="!selectedRequest.employee">Aucun employé assigné</p>
+        </div>
+
+        <!-- Request Info -->
+        <div class="detail-section">
+          <h3><mat-icon>info</mat-icon> Informations</h3>
+          <div class="detail-row">
+            <span class="label">ID:</span>
+            <span class="value mono">{{ selectedRequest.id }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Profession:</span>
+            <span class="value highlight">{{ selectedRequest.profession }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Statut:</span>
+            <mat-chip [class]="'status-' + selectedRequest.status">
+              {{ getStatusLabel(selectedRequest.status) }}
+            </mat-chip>
+          </div>
+          <div class="detail-row">
+            <span class="label">Urgence:</span>
+            <mat-chip [class]="'urgency-' + selectedRequest.urgency">
+              {{ getUrgencyLabel(selectedRequest.urgency) }}
+            </mat-chip>
+          </div>
+          <div class="detail-row">
+            <span class="label">Créée le:</span>
+            <span class="value">{{ selectedRequest.createdAt | date: 'dd/MM/yyyy à HH:mm' }}</span>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="detail-section">
+          <h3><mat-icon>location_on</mat-icon> Localisation</h3>
+          <div class="detail-row">
+            <span class="label">Gouvernorat:</span>
+            <span class="value">{{ selectedRequest.location?.governorate || 'Non spécifié' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Ville:</span>
+            <span class="value">{{ selectedRequest.location?.city || 'Non spécifiée' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedRequest.location?.address">
+            <span class="label">Adresse:</span>
+            <span class="value">{{ selectedRequest.location?.address }}</span>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="detail-section">
+          <h3><mat-icon>payments</mat-icon> Prix</h3>
+          <div class="detail-row">
+            <span class="label">Prix estimé:</span>
+            <span class="value price">{{ selectedRequest.estimatedPrice ? (selectedRequest.estimatedPrice + ' TND') : 'Non défini' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Prix final:</span>
+            <span class="value price final">{{ selectedRequest.finalPrice ? (selectedRequest.finalPrice + ' TND') : 'Non défini' }}</span>
+          </div>
+        </div>
+
+        <!-- Dates -->
+        <div class="detail-section">
+          <h3><mat-icon>schedule</mat-icon> Dates</h3>
+          <div class="detail-row">
+            <span class="label">Acceptée:</span>
+            <span class="value">{{ selectedRequest.acceptedAt ? (selectedRequest.acceptedAt | date: 'dd/MM/yyyy HH:mm') : '-' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Terminée:</span>
+            <span class="value">{{ selectedRequest.completedAt ? (selectedRequest.completedAt | date: 'dd/MM/yyyy HH:mm') : '-' }}</span>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="detail-section full-width">
+          <h3><mat-icon>description</mat-icon> Description du problème</h3>
+          <p class="description-text">{{ selectedRequest.description || 'Aucune description' }}</p>
+        </div>
+
+        <!-- Notes -->
+        <div class="detail-section full-width" *ngIf="selectedRequest.notes">
+          <h3><mat-icon>note</mat-icon> Notes</h3>
+          <p class="notes-text">{{ selectedRequest.notes }}</p>
+        </div>
+
+        <!-- Photos -->
+        <div class="detail-section full-width" *ngIf="selectedRequest.photos && selectedRequest.photos.length > 0">
+          <h3><mat-icon>photo_library</mat-icon> Photos</h3>
+          <div class="photos-grid">
+            <img *ngFor="let photo of selectedRequest.photos" [src]="photo" alt="Photo" class="photo-thumb">
+          </div>
+        </div>
+      </div>
+
+      <!-- EDIT MODE -->
+      <div class="edit-form" *ngIf="isEditing">
+        <div class="form-grid">
+          <!-- Profession -->
+          <mat-form-field appearance="outline">
+            <mat-label>Profession</mat-label>
+            <mat-select [(ngModel)]="editForm.profession">
+              <mat-option *ngFor="let cat of categories" [value]="cat.name">{{ cat.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Status -->
+          <mat-form-field appearance="outline">
+            <mat-label>Statut</mat-label>
+            <mat-select [(ngModel)]="editForm.status">
+              <mat-option value="pending">En attente</mat-option>
+              <mat-option value="accepted">Acceptée</mat-option>
+              <mat-option value="in_progress">En cours</mat-option>
+              <mat-option value="completed">Terminée</mat-option>
+              <mat-option value="cancelled">Annulée</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Urgency -->
+          <mat-form-field appearance="outline">
+            <mat-label>Urgence</mat-label>
+            <mat-select [(ngModel)]="editForm.urgency">
+              <mat-option value="normal">Normale</mat-option>
+              <mat-option value="urgent">Urgente</mat-option>
+              <mat-option value="very_urgent">Très urgente</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Governorate -->
+          <mat-form-field appearance="outline">
+            <mat-label>Gouvernorat</mat-label>
+            <mat-select [(ngModel)]="editForm.governorate">
+              <mat-option *ngFor="let gov of governorates" [value]="gov">{{ gov }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- City -->
+          <mat-form-field appearance="outline">
+            <mat-label>Ville</mat-label>
+            <input matInput [(ngModel)]="editForm.city">
+          </mat-form-field>
+
+          <!-- Address -->
+          <mat-form-field appearance="outline">
+            <mat-label>Adresse</mat-label>
+            <input matInput [(ngModel)]="editForm.address">
+          </mat-form-field>
+
+          <!-- Estimated Price -->
+          <mat-form-field appearance="outline">
+            <mat-label>Prix estimé (TND)</mat-label>
+            <input matInput type="number" [(ngModel)]="editForm.estimatedPrice">
+          </mat-form-field>
+
+          <!-- Final Price -->
+          <mat-form-field appearance="outline">
+            <mat-label>Prix final (TND)</mat-label>
+            <input matInput type="number" [(ngModel)]="editForm.finalPrice">
+          </mat-form-field>
+
+          <!-- REQ-04: Employee Assignment -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Employé assigné</mat-label>
+            <mat-select [(ngModel)]="editForm.employeeId">
+              <mat-option>
+                <ngx-mat-select-search 
+                  [(ngModel)]="employeeSearchQuery" 
+                  (ngModelChange)="filterEmployeeList()"
+                  placeholderLabel="Rechercher un employé..."
+                  noEntriesFoundLabel="Aucun employé trouvé">
+                </ngx-mat-select-search>
+              </mat-option>
+              <mat-option value="">Aucun (non assigné)</mat-option>
+              <mat-option *ngFor="let emp of filteredEmployees" [value]="emp.id">
+                <div class="employee-option">
+                  <span class="emp-name">{{ emp.name }}</span>
+                  <span class="emp-profession">{{ emp.profession }}</span>
+                  <mat-icon *ngIf="emp.isVerified" class="verified-icon">verified</mat-icon>
+                </div>
+              </mat-option>
+            </mat-select>
+            <mat-hint>Sélectionnez un employé pour assigner cette demande</mat-hint>
+          </mat-form-field>
+
+          <!-- Description -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea matInput [(ngModel)]="editForm.description" rows="4"></textarea>
+          </mat-form-field>
+
+          <!-- Notes -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Notes</mat-label>
+            <textarea matInput [(ngModel)]="editForm.notes" rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="detail-actions">
+        <button mat-raised-button color="primary" *ngIf="isEditing" (click)="saveChanges()">
+          <mat-icon>save</mat-icon>
+          Enregistrer
+        </button>
+        <button mat-raised-button *ngIf="!isEditing" (click)="toggleEdit()">
+          <mat-icon>edit</mat-icon>
+          Modifier
+        </button>
+        <button mat-raised-button color="warn" (click)="deleteRequest()">
+          <mat-icon>delete</mat-icon>
+          Supprimer
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Table -->
+  <mat-card>
+    <mat-card-content>
+      <div class="loading-container" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Chargement des demandes...</p>
+      </div>
+
+      <div class="table-container" *ngIf="!isLoading">
+        <table mat-table [dataSource]="dataSource" class="requests-table">
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef>ID</th>
+            <td mat-cell *matCellDef="let request">{{ request.id.substring(0, 8) }}...</td>
+          </ng-container>
+
+          <ng-container matColumnDef="client">
+            <th mat-header-cell *matHeaderCellDef>Client</th>
+            <td mat-cell *matCellDef="let request">
+              <div class="client-cell">
+                <span class="name">{{ getClientName(request) }}</span>
+                <span class="email" *ngIf="request.client?.email">{{ request.client.email }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="profession">
+            <th mat-header-cell *matHeaderCellDef>Profession</th>
+            <td mat-cell *matCellDef="let request">{{ request.profession }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="location">
+            <th mat-header-cell *matHeaderCellDef>Localisation</th>
+            <td mat-cell *matCellDef="let request">
+              {{ request.location?.city || 'N/A' }}, {{ request.location?.governorate || '' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Statut</th>
+            <td mat-cell *matCellDef="let request">
+              <mat-chip [class]="'status-' + request.status">
+                {{ getStatusLabel(request.status) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="urgency">
+            <th mat-header-cell *matHeaderCellDef>Urgence</th>
+            <td mat-cell *matCellDef="let request">
+              <mat-chip [class]="'urgency-' + request.urgency">
+                {{ getUrgencyLabel(request.urgency) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="price">
+            <th mat-header-cell *matHeaderCellDef>Prix</th>
+            <td mat-cell *matCellDef="let request">
+              {{ request.estimatedPrice ? (request.estimatedPrice + ' TND') : '-' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Date</th>
+            <td mat-cell *matCellDef="let request">
+              {{ request.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let request">
+              <button mat-icon-button color="primary" (click)="viewDetails(request); $event.stopPropagation()" matTooltip="Voir détails">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="confirmDelete(request); $event.stopPropagation()" matTooltip="Supprimer">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+              [class.selected]="selectedRequest?.id === row.id"
+              (click)="viewDetails(row)"></tr>
+        </table>
+
+        <div *ngIf="dataSource.data.length === 0" class="empty-state">
+          <mat-icon>inbox</mat-icon>
+          <p>Aucune demande trouvée</p>
+        </div>
+
+        <mat-paginator
+          [length]="totalElements"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[10, 20, 50, 100]"
+          (page)="onPageChange($event)">
+        </mat-paginator>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

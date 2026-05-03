@@ -1,0 +1,242 @@
+.employees-container {
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    h1 {
+      margin: 0;
+      color: var(--text-primary);
+      font-size: 32px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      
+      mat-icon {
+        color: var(--primary);
+        font-size: 36px;
+        width: 36px;
+        height: 36px;
+      }
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      
+      button {
+        height: 44px;
+        border-radius: var(--radius-sm);
+        
+        mat-icon {
+          margin-right: 8px;
+        }
+        
+        &[color="primary"] {
+          background: var(--gradient-primary);
+        }
+      }
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    
+    ::ng-deep .mat-mdc-progress-spinner circle {
+      stroke: var(--primary);
+    }
+    
+    p {
+      margin-top: 16px;
+      color: var(--text-secondary);
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--divider);
+  }
+
+  .employees-table {
+    width: 100%;
+    
+    th {
+      background: var(--bg-light);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    tr:hover {
+      background: rgba(0, 153, 204, 0.04);
+    }
+  }
+
+  .employee-cell {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    .employee-info {
+      display: flex;
+      flex-direction: column;
+      
+      .name {
+        font-weight: 500;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      .profession {
+        font-size: 12px;
+        color: var(--primary);
+        font-weight: 500;
+      }
+    }
+
+    .verified-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--success);
+    }
+  }
+
+  .rating-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--warning-light);
+    padding: 6px 12px;
+    border-radius: 20px;
+    width: fit-content;
+
+    mat-icon {
+      color: var(--warning);
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+    
+    span {
+      font-weight: 600;
+      color: #B45309;
+    }
+
+    .review-count {
+      color: #D97706;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  }
+
+  .location-cell {
+    display: flex;
+    flex-direction: column;
+    
+    .governorate {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .city {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+  }
+
+  mat-chip, .mat-mdc-chip {
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
+    
+    &.active {
+      background: var(--success-light) !important;
+      color: #047857 !important;
+    }
+
+    &.pending {
+      background: var(--warning-light) !important;
+      color: #B45309 !important;
+    }
+
+    &.suspended {
+      background: var(--error-light) !important;
+      color: #B91C1C !important;
+    }
+
+    &.inactive {
+      background: var(--bg-light) !important;
+      color: var(--text-secondary) !important;
+    }
+  }
+
+  .action-btn {
+    border-radius: var(--radius-sm);
+    
+    &:hover {
+      background: rgba(0, 153, 204, 0.1);
+    }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--bg-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    mat-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: var(--text-muted);
+    }
+
+    p {
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+  }
+}

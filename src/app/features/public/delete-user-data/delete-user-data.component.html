@@ -1,0 +1,100 @@
+<div class="legal-shell">
+  <header class="legal-hero legal-hero--alt" role="banner">
+    <div class="legal-hero__inner">
+      <a routerLink="/login" class="legal-hero__brand">SNAY3I — Administration</a>
+      <h1>Suppression des données utilisateur</h1>
+      <p class="legal-hero__meta">SNAY3I — Dernière mise à jour : {{ updated }}</p>
+    </div>
+  </header>
+
+  <main class="legal-main">
+    <div class="highlight-card" role="region" aria-label="Résumé">
+      <mat-icon class="highlight-card__icon">delete_forever</mat-icon>
+      <div>
+        <h2 class="highlight-card__title">Vos données, votre contrôle</h2>
+        <p class="highlight-card__text">
+          Vous pouvez demander la suppression de votre compte et des données personnelles associées conformément au droit applicable
+          et à notre politique de confidentialité. Cette page résume la marche à suivre pour les utilisateurs de l’application mobile.
+        </p>
+      </div>
+    </div>
+
+    <article class="legal-section">
+      <h2>1. Qui peut demander la suppression ?</h2>
+      <p>
+        Toute personne disposant d’un compte utilisateur (client ou professionnel) sur l’application SNAY3I peut demander la suppression
+        de son compte et, dans la mesure du possible, l’effacement des données personnelles associées, sous réserve des obligations légales
+        de conservation (facturation, litiges en cours, etc.).
+      </p>
+    </article>
+
+    <article class="legal-section">
+      <h2>2. Comment faire la demande ?</h2>
+      <p>Nous privilégions le canal intégré à l’application :</p>
+      <ol class="steps">
+        <li>
+          Ouvrez l’application <strong>SNAY3I</strong> sur votre appareil.
+        </li>
+        <li>
+          Rendez-vous dans <strong>Profil</strong> puis <strong>Aide et support</strong> (ou équivalent selon la version de l’app).
+        </li>
+        <li>
+          Envoyez une demande explicite de <strong>suppression de compte et de données</strong>, en indiquant l’adresse e-mail ou le numéro
+          de téléphone associé au compte afin que nous puissions vous identifier de manière sûre.
+        </li>
+      </ol>
+      <p>
+        Si le formulaire ou la messagerie in-app ne sont pas disponibles, vous pouvez également utiliser la même adresse ou le même canal
+        de contact indiqué dans l’application pour le support utilisateur.
+      </p>
+    </article>
+
+    <article class="legal-section">
+      <h2>3. Ce qui est supprimé</h2>
+      <p>Selon votre utilisation du service, la suppression peut inclure notamment :</p>
+      <ul>
+        <li>Les informations de profil et d’identification liées à votre compte.</li>
+        <li>Les contenus que vous avez publiés dans la mesure où la loi et le fonctionnement du service le permettent.</li>
+        <li>Les données dont nous n’avons plus besoin pour fournir le service ou respecter la loi.</li>
+      </ul>
+      <p>
+        Certaines informations peuvent être conservées sous une forme anonymisée ou agrégée pour des statistiques, ou conservées plus longtemps
+        lorsque la loi l’exige (preuves comptables, réponses à une autorité, etc.).
+      </p>
+    </article>
+
+    <article class="legal-section">
+      <h2>4. Délai de traitement</h2>
+      <p>
+        Nous traitons les demandes dans un délai raisonnable après vérification de votre identité. Ce délai peut varier selon la complexité
+        de la demande et les obligations légales applicables. Vous recevrez une confirmation lorsque la suppression ou la clôture du compte
+        aura été effectuée, sauf impossibilité technique ou disposition légale contraire.
+      </p>
+    </article>
+
+    <article class="legal-section">
+      <h2>5. Données partagées avec d’autres utilisateurs</h2>
+      <p>
+        Des informations que vous avez partagées avec d’autres utilisateurs (par exemple des messages ou des éléments visibles dans le cadre
+        d’une prestation) peuvent rester visibles côté destinataire dans la limite permise par la loi et les fonctionnalités du service.
+        La suppression de votre compte ne modifie pas rétroactivement tous les contenus déjà reçus par des tiers.
+      </p>
+    </article>
+
+    <article class="legal-section">
+      <h2>6. Politique de confidentialité</h2>
+      <p>
+        Pour plus de détails sur les catégories de données, les finalités et vos droits, consultez notre
+        <a routerLink="/privacy-policy">Politique de confidentialité</a>.
+      </p>
+    </article>
+
+    <nav class="legal-nav" aria-label="Pages légales">
+      <a mat-stroked-button color="primary" routerLink="/privacy-policy">← Politique de confidentialité</a>
+    </nav>
+  </main>
+
+  <footer class="legal-footer">
+    <p>© SNAY3I — Page publique, sans connexion.</p>
+  </footer>
+</div>
