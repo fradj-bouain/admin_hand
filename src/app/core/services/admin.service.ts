@@ -44,6 +44,14 @@ export interface Employee {
   createdAt: string;
 }
 
+/** Bonus d'appel (admin uniquement) : note réelle, bonus et note calculée affichée aux clients. */
+export interface EmployeeRatingInfo {
+  employeeId: string;
+  realRating: number | null;
+  callBonus: number;
+  calculatedRating: number;
+}
+
 export interface Request {
   id: string;
   userId: string;
@@ -97,7 +105,10 @@ export interface CreateEmployeeRequest {
   email?: string;
   phone?: string;
   password?: string;
+  /** Métier principal (= premier de professions). */
   profession: string;
+  /** Tous les métiers (max 4, le premier = principal). */
+  professions?: string[];
   description?: string;
   governorate: string;
   city: string;
@@ -187,8 +198,15 @@ export class AdminService {
 
   // ===== Users (clients) =====
 
-  getUsers(page: number = 0, size: number = 20): Observable<any> {
-    return this.apiService.get('/users', { page, size }).pipe(
+  // `type` ('CLIENT' | 'EMPLOYEE') filtre côté serveur — sans lui, isoler "juste les clients"
+  // obligeait à tout récupérer puis filtrer côté navigateur, ce qui faussait `totalElements` (et
+  // donc la pagination) dès qu'il y avait plus d'une page de résultats.
+  getUsers(page: number = 0, size: number = 20, type?: 'CLIENT' | 'EMPLOYEE'): Observable<any> {
+    const params: any = { page, size };
+    if (type) {
+      params.type = type;
+    }
+    return this.apiService.get('/users', params).pipe(
       map(response => this.extractData(response)),
       catchError(err => {
         console.error('Error getting users:', err);
@@ -271,6 +289,24 @@ export class AdminService {
 
   verifyEmployee(id: string): Observable<any> {
     return this.apiService.post(`/admin/employees/${id}/verify`).pipe(
+      map(response => this.extractData(response))
+    );
+  }
+
+  // ===== Bonus d'appel (endpoints réservés à l'admin) =====
+
+  getEmployeeRatings(ids: string[]): Observable<EmployeeRatingInfo[]> {
+    if (!ids.length) {
+      return of([]);
+    }
+    return this.apiService.get<EmployeeRatingInfo[]>('/admin/employees/call-bonuses', { ids: ids.join(',') }).pipe(
+      map(response => this.extractData(response))
+    );
+  }
+
+  /** Remet à 0 le bonus d'appel des seuls employés indiqués (aucune note n'est modifiée). */
+  resetCallBonus(employeeIds: string[]): Observable<{ reset: number }> {
+    return this.apiService.post<{ reset: number }>('/admin/employees/call-bonus/reset', { employeeIds }).pipe(
       map(response => this.extractData(response))
     );
   }

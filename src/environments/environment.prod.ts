@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://spring-production-fc6a.up.railway.app',
+  apiUrl: 'https://api.snay3ii.tn',
   apiBasePath: '/api',
 };
 

@@ -28,6 +28,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
@@ -96,6 +97,7 @@ import { DeleteUserDataComponent } from './features/public/delete-user-data/dele
     MatDatepickerModule,
     MatNativeDateModule,
     MatTooltipModule,
+    MatCheckboxModule,
     MatMenuModule,
     MatSlideToggleModule,
     MatDividerModule,

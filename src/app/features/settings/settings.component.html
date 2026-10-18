@@ -148,6 +148,64 @@
         </div>
       </mat-tab>
 
+      <!-- App mobile: versions Play Store -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>system_update</mat-icon>
+          App mobile
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="section-header">
+            <h2>Versions application mobile</h2>
+            <p>
+              Stocké en base de données — <strong>pas besoin de redémarrer le serveur</strong>.
+              Alignez <code>versionName</code> dans <code>pubspec.yaml</code> (ex. 1.0.0) avec ces valeurs.
+            </p>
+          </div>
+
+          <mat-card class="verification-card">
+            <mat-card-content>
+              <form [formGroup]="appConfigForm" class="app-config-form">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Version minimale obligatoire</mat-label>
+                  <input matInput formControlName="minSupportedVersion" placeholder="1.0.0">
+                  <mat-hint>Les apps plus anciennes voient l'écran « Mise à jour requise »</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Dernière version publiée (affichage)</mat-label>
+                  <input matInput formControlName="latestVersion" placeholder="1.1.0">
+                  <mat-hint>Optionnel — informatif sur l'écran de mise à jour</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>URL Play Store Android</mat-label>
+                  <input matInput formControlName="androidStoreUrl">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>URL App Store iOS (optionnel)</mat-label>
+                  <input matInput formControlName="iosStoreUrl">
+                </mat-form-field>
+              </form>
+
+              <p class="config-updated" *ngIf="appMobileConfig.updatedAt">
+                Dernière modification : {{ appMobileConfig.updatedAt }}
+              </p>
+            </mat-card-content>
+          </mat-card>
+
+          <div class="section-actions">
+            <button mat-raised-button color="primary" (click)="saveAppMobileConfig()"
+                    [disabled]="isSaving || appConfigForm.invalid">
+              <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+              {{ isSaving ? 'Sauvegarde...' : 'Enregistrer les versions' }}
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+
       <!-- General Settings Tab -->
       <mat-tab>
         <ng-template mat-tab-label>

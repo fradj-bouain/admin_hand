@@ -22,7 +22,7 @@
           <!-- Profession Column -->
           <ng-container matColumnDef="profession">
             <th mat-header-cell *matHeaderCellDef>Profession</th>
-            <td mat-cell *matCellDef="let employee">{{ employee.profession }}</td>
+            <td mat-cell *matCellDef="let employee">{{ employee.professions?.length ? employee.professions.join(' · ') : employee.profession }}</td>
           </ng-container>
 
           <!-- Rating Column -->

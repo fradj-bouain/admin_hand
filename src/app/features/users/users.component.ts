@@ -3,7 +3,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTabChangeEvent } from '@angular/material/tabs';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AdminService, User, Employee, CreateClientRequest, CreateEmployeeRequest } from '../../core/services/admin.service';
+import { AdminService, User, Employee, CreateClientRequest, CreateEmployeeRequest, EmployeeRatingInfo } from '../../core/services/admin.service';
 import { ApiService } from '../../core/services/api.service';
 import { ExportService } from '../../core/services/export.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -36,12 +36,18 @@ export class UsersComponent implements OnInit {
   allClients: User[] = [];
 
   // Employees
-  employeeColumns: string[] = ['name', 'profession', 'email', 'rating', 'status', 'verified', 'actions'];
+  employeeColumns: string[] = ['select', 'name', 'profession', 'email', 'calculatedRating', 'rating', 'callBonus', 'status', 'verified', 'actions'];
   employeesDataSource = new MatTableDataSource<EmployeeWithZones>([]);
   employeeCount = 0;
   isLoadingEmployees = false;
   searchQueryEmployee = '';
   allEmployees: EmployeeWithZones[] = [];
+
+  // Bonus d'appel : note réelle / bonus / note calculée (endpoint admin), sélection pour la remise à 0.
+  // La sélection ne couvre que les employés affichés : elle est vidée à chaque changement de liste.
+  employeeRatings: Record<string, EmployeeRatingInfo> = {};
+  selectedEmployeeIds = new Set<string>();
+  isResettingBonus = false;
 
   // USER-01, USER-02, USER-03: Filter variables
   selectedStatusFilter = '';
@@ -117,7 +123,8 @@ export class UsersComponent implements OnInit {
       email: ['', Validators.email],
       phone: [''],
       password: [''],
-      profession: ['', Validators.required],
+      // Jusqu'à 4 métiers ; le premier choisi est le métier principal.
+      professions: [[] as string[], [Validators.required, Validators.maxLength(4)]],
       description: [''],
       governorate: ['', Validators.required],
       city: ['', Validators.required],
@@ -163,21 +170,22 @@ export class UsersComponent implements OnInit {
 
   loadClients(): void {
     this.isLoading = true;
-    this.adminService.getUsers(this.currentPage, this.pageSize).subscribe({
+    // `type: 'CLIENT'` filtre déjà côté serveur (voir admin.service.ts) : plus besoin de refiltrer
+    // ici, et `totalElements` reflète maintenant le vrai total de clients, pas celui de tous les
+    // utilisateurs confondus (ce qui faussait avant `clientCount`, donc la pagination).
+    this.adminService.getUsers(this.currentPage, this.pageSize, 'CLIENT').subscribe({
       next: (data: any) => {
         let users: User[] = [];
-        
+
         if (data?.content) {
           users = data.content;
         } else if (Array.isArray(data)) {
           users = data;
         }
-        
-        this.allClients = users.filter(u => 
-          u.type?.toLowerCase() === 'client' || !u.type
-        );
+
+        this.allClients = users;
         this.clientsDataSource.data = this.allClients;
-        this.clientCount = this.allClients.length;
+        this.clientCount = data?.totalElements ?? this.allClients.length;
         this.isLoading = false;
       },
       error: (error) => {
@@ -271,6 +279,85 @@ export class UsersComponent implements OnInit {
     }
   }
 
+  // ===== BONUS D'APPEL =====
+
+  loadEmployeeRatings(ids: string[]): void {
+    this.adminService.getEmployeeRatings(ids).subscribe({
+      next: (infos) => {
+        this.employeeRatings = {};
+        for (const info of infos ?? []) {
+          this.employeeRatings[info.employeeId] = info;
+        }
+      },
+      error: () => {
+        this.employeeRatings = {};
+        this.snackBar.open('Erreur lors du chargement des bonus d\'appel', 'Fermer', { duration: 3000 });
+      },
+    });
+  }
+
+  ratingInfo(emp: Employee): EmployeeRatingInfo | undefined {
+    return this.employeeRatings[emp.id];
+  }
+
+  /** Note principale : la note calculée (la liste des employés la renvoie déjà en `rating`). */
+  calculatedRating(emp: Employee): number {
+    return this.ratingInfo(emp)?.calculatedRating ?? emp.rating ?? 0;
+  }
+
+  isEmployeeSelected(emp: Employee): boolean {
+    return this.selectedEmployeeIds.has(emp.id);
+  }
+
+  toggleEmployeeSelection(emp: Employee): void {
+    if (this.selectedEmployeeIds.has(emp.id)) {
+      this.selectedEmployeeIds.delete(emp.id);
+    } else {
+      this.selectedEmployeeIds.add(emp.id);
+    }
+  }
+
+  /** Tous les employés affichés sur la page sont-ils sélectionnés ? */
+  allPageEmployeesSelected(): boolean {
+    const page = this.employeesDataSource.data;
+    return page.length > 0 && page.every(e => this.selectedEmployeeIds.has(e.id));
+  }
+
+  somePageEmployeesSelected(): boolean {
+    return this.selectedEmployeeIds.size > 0 && !this.allPageEmployeesSelected();
+  }
+
+  toggleSelectAllPageEmployees(): void {
+    if (this.allPageEmployeesSelected()) {
+      this.selectedEmployeeIds.clear();
+    } else {
+      this.employeesDataSource.data.forEach(e => this.selectedEmployeeIds.add(e.id));
+    }
+  }
+
+  /** Remet à 0 le bonus des SEULS employés sélectionnés, après confirmation ; aucune note n'est modifiée. */
+  resetSelectedCallBonus(): void {
+    const ids = Array.from(this.selectedEmployeeIds);
+    if (ids.length === 0 || this.isResettingBonus) return;
+    if (!confirm(`Remettre à 0 le bonus d'appel de ${ids.length} employé(s) ? Les notes réelles et les avis ne changent pas.`)) {
+      return;
+    }
+    this.isResettingBonus = true;
+    this.adminService.resetCallBonus(ids).subscribe({
+      next: (result) => {
+        this.isResettingBonus = false;
+        this.snackBar.open(`Bonus d'appel remis à 0 pour ${result?.reset ?? ids.length} employé(s)`, 'Fermer', { duration: 3000 });
+        this.selectedEmployeeIds.clear();
+        this.loadEmployees();
+      },
+      error: (err) => {
+        this.isResettingBonus = false;
+        // La sélection est conservée pour pouvoir réessayer
+        this.snackBar.open(err.error?.message || 'Erreur lors de la remise à zéro du bonus', 'Fermer', { duration: 3000 });
+      },
+    });
+  }
+
   // ===== EMPLOYEE CRUD =====
 
   loadEmployees(): void {
@@ -287,7 +374,11 @@ export class UsersComponent implements OnInit {
         
         this.allEmployees = employees;
         this.employeesDataSource.data = employees;
-        this.employeeCount = employees.length;
+        this.selectedEmployeeIds.clear();
+        this.loadEmployeeRatings(employees.map(e => e.id));
+        // Même correctif que loadClients() : le vrai total serveur, pas la taille de la seule
+        // page reçue — sans ça le paginateur se désactivait dès que le total dépassait pageSize.
+        this.employeeCount = data?.totalElements ?? employees.length;
         this.isLoadingEmployees = false;
       },
       error: (error) => {
@@ -317,12 +408,63 @@ export class UsersComponent implements OnInit {
       name: employee.name,
       email: employee.email,
       phone: employee.phone,
-      profession: employee.profession,
+      professions: employee.professions?.length ? [...employee.professions] : [employee.profession],
       description: employee.description,
-      governorate: employee.location?.governorate,
+      // Une ancienne valeur hors des 24 laisse le champ vide : "requis" oblige alors à choisir.
+      governorate: this.officialGovernorate(employee.location?.governorate) ?? '',
       city: employee.location?.city,
       address: employee.location?.address,
     });
+  }
+
+  /**
+   * Nom officiel d'un gouvernorat enregistré (majuscules, espaces, accents, nom arabe ou alias
+   * tolérés), sinon null. Mêmes règles que GovernorateNormalizer (backend) et
+   * officialGovernorate (app).
+   */
+  private officialGovernorate(value?: string | null): string | null {
+    if (!value || !value.trim()) return null;
+    const key = (s: string) => s.trim().toLowerCase().normalize('NFD')
+      .replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+    const arabic: Record<string, string> = {
+      'Ariana': 'أريانة', 'Béja': 'باجة', 'Ben Arous': 'بن عروس', 'Bizerte': 'بنزرت',
+      'Gabès': 'قابس', 'Gafsa': 'قفصة', 'Jendouba': 'جندوبة', 'Kairouan': 'القيروان',
+      'Kasserine': 'القصرين', 'Kébili': 'قبلي', 'Kef': 'الكاف', 'Mahdia': 'المهدية',
+      'Manouba': 'منوبة', 'Médenine': 'مدنين', 'Monastir': 'المنستير', 'Nabeul': 'نابل',
+      'Sfax': 'صفاقس', 'Sidi Bouzid': 'سيدي بوزيد', 'Siliana': 'سليانة', 'Sousse': 'سوسة',
+      'Tataouine': 'تطاوين', 'Tozeur': 'توزر', 'Tunis': 'تونس', 'Zaghouan': 'زغوان',
+    };
+    const aliases: Record<string, string[]> = {
+      'Kef': ['Le Kef', 'El Kef'], 'Manouba': ['La Manouba'], 'Sidi Bouzid': ['Sidi Bou Zid'],
+    };
+    const wanted = key(value);
+    return this.governorates.find(gov =>
+      [gov, arabic[gov], ...(aliases[gov] ?? [])].some(name => !!name && key(name) === wanted)
+    ) ?? null;
+  }
+
+  /** Catégories + anciens métiers libres déjà détenus (sinon ils disparaîtraient de la liste). */
+  get professionOptions(): { name: string; icon?: string }[] {
+    const selected: string[] = this.employeeForm.get('professions')?.value ?? [];
+    const known = new Set(this.categories.map(c => c.name.toLowerCase()));
+    return [
+      ...this.categories.map(c => ({ name: c.name, icon: c.icon })),
+      ...selected.filter(n => !known.has(n.toLowerCase())).map(n => ({ name: n })),
+    ];
+  }
+
+  trackByProfession(_: number, option: { name: string }): string {
+    return option.name;
+  }
+
+  isProfessionDisabled(name: string): boolean {
+    const selected: string[] = this.employeeForm.get('professions')?.value ?? [];
+    return selected.length >= 4 && !selected.includes(name);
+  }
+
+  /** "Plombier · Peintre" — tous les métiers pour l'affichage en tableau. */
+  professionsLabel(emp: Employee): string {
+    return emp.professions?.length ? emp.professions.join(' · ') : (emp.profession || '-');
   }
 
   cancelEmployeeForm(): void {
@@ -338,7 +480,13 @@ export class UsersComponent implements OnInit {
     }
 
     this.isSavingEmployee = true;
-    const employeeData: CreateEmployeeRequest = this.employeeForm.value;
+    const formValue = this.employeeForm.value;
+    const employeeData: CreateEmployeeRequest = {
+      ...formValue,
+      // profession (unique) = principale, gardée pour les anciens clients de l'API.
+      profession: formValue.professions[0],
+      professions: formValue.professions,
+    };
 
     if (this.isEditingEmployee && this.editingEmployeeId) {
       this.adminService.updateEmployee(this.editingEmployeeId, employeeData).subscribe({
@@ -408,6 +556,7 @@ export class UsersComponent implements OnInit {
       filtered = filtered.filter(emp =>
         emp.name?.toLowerCase().includes(query) ||
         emp.profession?.toLowerCase().includes(query) ||
+        emp.professions?.some(p => p.toLowerCase().includes(query)) ||
         emp.email?.toLowerCase().includes(query) ||
         emp.phone?.includes(query)
       );
@@ -436,6 +585,8 @@ export class UsersComponent implements OnInit {
     }
 
     this.employeesDataSource.data = filtered;
+    // Jamais de remise à 0 sur des employés qui ne sont plus affichés
+    this.selectedEmployeeIds.clear();
   }
 
   // USER-01, USER-02, USER-03: Handle filter changes

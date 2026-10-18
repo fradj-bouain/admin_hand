@@ -22,6 +22,15 @@ interface Settings {
   paymentMethods: PaymentMethod[];
 }
 
+/** Config app mobile (versions Play Store) — stockée en base, sans restart serveur */
+export interface AppMobileConfig {
+  minSupportedVersion: string;
+  latestVersion?: string | null;
+  androidStoreUrl: string;
+  iosStoreUrl?: string | null;
+  updatedAt?: string;
+}
+
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
@@ -54,6 +63,14 @@ export class SettingsComponent implements OnInit {
   // Active tab
   activeTab = 0;
 
+  appMobileConfig: AppMobileConfig = {
+    minSupportedVersion: '1.0.0',
+    latestVersion: '',
+    androidStoreUrl: 'https://play.google.com/store/apps/details?id=com.fluttiris.handy',
+    iosStoreUrl: '',
+  };
+  appConfigForm: FormGroup;
+
   constructor(
     private apiService: ApiService,
     private snackBar: MatSnackBar,
@@ -65,10 +82,17 @@ export class SettingsComponent implements OnInit {
       weekPrice: [50, [Validators.required, Validators.min(0)]],
       mega30dPrice: [150, [Validators.required, Validators.min(0)]],
     });
+    this.appConfigForm = this.fb.group({
+      minSupportedVersion: ['1.0.0', Validators.required],
+      latestVersion: [''],
+      androidStoreUrl: ['', Validators.required],
+      iosStoreUrl: [''],
+    });
   }
 
   ngOnInit(): void {
     this.loadSettings();
+    this.loadAppMobileConfig();
   }
 
   loadSettings(): void {
@@ -195,6 +219,55 @@ export class SettingsComponent implements OnInit {
       case 'VIREMENT': return 'account_balance';
       default: return 'payment';
     }
+  }
+
+  loadAppMobileConfig(): void {
+    this.apiService.get<AppMobileConfig>('/admin/app-mobile-config').subscribe({
+      next: (response) => {
+        const data = response.data;
+        if (data) {
+          this.appMobileConfig = data;
+          this.appConfigForm.patchValue({
+            minSupportedVersion: data.minSupportedVersion ?? '1.0.0',
+            latestVersion: data.latestVersion ?? '',
+            androidStoreUrl: data.androidStoreUrl ?? '',
+            iosStoreUrl: data.iosStoreUrl ?? '',
+          });
+        }
+      },
+      error: () => {
+        console.log('App mobile config: using form defaults');
+      },
+    });
+  }
+
+  saveAppMobileConfig(): void {
+    if (this.appConfigForm.invalid) return;
+    this.isSaving = true;
+    const body = {
+      minSupportedVersion: this.appConfigForm.value.minSupportedVersion?.trim(),
+      latestVersion: this.appConfigForm.value.latestVersion?.trim() || null,
+      androidStoreUrl: this.appConfigForm.value.androidStoreUrl?.trim(),
+      iosStoreUrl: this.appConfigForm.value.iosStoreUrl?.trim() || null,
+    };
+    this.apiService.put<AppMobileConfig>('/admin/app-mobile-config', body).subscribe({
+      next: (response) => {
+        if (response.data) {
+          this.appMobileConfig = response.data;
+        }
+        this.snackBar.open(
+          'Versions app enregistrées — effet immédiat sur les mobiles (sans redémarrage serveur)',
+          'Fermer',
+          { duration: 5000 }
+        );
+        this.isSaving = false;
+      },
+      error: (err) => {
+        console.error('Error saving app mobile config:', err);
+        this.snackBar.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
+        this.isSaving = false;
+      },
+    });
   }
 }
 

@@ -245,6 +245,16 @@
 
             <span class="spacer"></span>
 
+            <!-- Bonus d'appel : remise à 0 des employés sélectionnés (avec confirmation) -->
+            <button mat-stroked-button color="warn" (click)="resetSelectedCallBonus()"
+                    [disabled]="selectedEmployeeIds.size === 0 || isResettingBonus"
+                    matTooltip="Remet à 0 le bonus d'appel des employés cochés (les notes réelles ne changent pas)"
+                    class="reset-bonus-btn">
+              <mat-icon>restart_alt</mat-icon>
+              Remettre le bonus à 0
+              <span *ngIf="selectedEmployeeIds.size > 0">({{ selectedEmployeeIds.size }})</span>
+            </button>
+
             <!-- USER-07: Export CSV button -->
             <button mat-stroked-button (click)="exportEmployees()" matTooltip="Exporter en CSV" class="export-btn">
               <mat-icon>download</mat-icon>
@@ -311,16 +321,18 @@
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
-                  <mat-label>Profession</mat-label>
-                  <mat-select formControlName="profession">
-                    <mat-option *ngFor="let category of categories" [value]="category.name">
-                      <mat-icon *ngIf="category.icon">{{ category.icon }}</mat-icon>
-                      {{ category.name }}
+                  <mat-label>Professions (max 4)</mat-label>
+                  <mat-select formControlName="professions" multiple>
+                    <mat-option *ngFor="let option of professionOptions; trackBy: trackByProfession"
+                                [value]="option.name" [disabled]="isProfessionDisabled(option.name)">
+                      <mat-icon *ngIf="option.icon">{{ option.icon }}</mat-icon>
+                      {{ option.name }}
                     </mat-option>
                   </mat-select>
                   <mat-icon matPrefix>work</mat-icon>
-                  <mat-error *ngIf="employeeForm.get('profession')?.hasError('required')">Profession requise</mat-error>
+                  <mat-error *ngIf="employeeForm.get('professions')?.hasError('required')">Au moins une profession requise</mat-error>
                   <mat-hint *ngIf="categories.length === 0">Aucune catégorie disponible</mat-hint>
+                  <mat-hint *ngIf="categories.length > 0">La première choisie est la profession principale</mat-hint>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="full-width">
@@ -383,6 +395,22 @@
           
           <div class="table-container" *ngIf="!isLoadingEmployees">
             <table mat-table [dataSource]="employeesDataSource" class="users-table">
+              <ng-container matColumnDef="select">
+                <th mat-header-cell *matHeaderCellDef>
+                  <mat-checkbox (change)="toggleSelectAllPageEmployees()"
+                                [checked]="allPageEmployeesSelected()"
+                                [indeterminate]="somePageEmployeesSelected()"
+                                matTooltip="Sélectionner tous les employés de la page">
+                  </mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let emp">
+                  <mat-checkbox (click)="$event.stopPropagation()"
+                                (change)="toggleEmployeeSelection(emp)"
+                                [checked]="isEmployeeSelected(emp)">
+                  </mat-checkbox>
+                </td>
+              </ng-container>
+
               <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef>Nom</th>
                 <td mat-cell *matCellDef="let emp">
@@ -397,7 +425,7 @@
 
               <ng-container matColumnDef="profession">
                 <th mat-header-cell *matHeaderCellDef>Profession</th>
-                <td mat-cell *matCellDef="let emp">{{ emp.profession || '-' }}</td>
+                <td mat-cell *matCellDef="let emp">{{ professionsLabel(emp) }}</td>
               </ng-container>
 
               <ng-container matColumnDef="email">
@@ -405,14 +433,30 @@
                 <td mat-cell *matCellDef="let emp">{{ emp.email || '-' }}</td>
               </ng-container>
 
-              <ng-container matColumnDef="rating">
+              <!-- Note principale = note calculée (celle que voient les clients et qui sert au classement) -->
+              <ng-container matColumnDef="calculatedRating">
                 <th mat-header-cell *matHeaderCellDef>Note</th>
                 <td mat-cell *matCellDef="let emp">
                   <div class="rating">
                     <mat-icon class="star">star</mat-icon>
-                    <span>{{ emp.rating?.toFixed(1) || '0.0' }}</span>
+                    <span>{{ calculatedRating(emp) | number:'1.1-1' }}</span>
                     <span class="review-count">({{ emp.reviewCount || 0 }})</span>
                   </div>
+                </td>
+              </ng-container>
+
+              <!-- À titre informatif : note réelle (avis des clients) et bonus d'appel, jamais un critère de classement -->
+              <ng-container matColumnDef="rating">
+                <th mat-header-cell *matHeaderCellDef>Note réelle</th>
+                <td mat-cell *matCellDef="let emp">
+                  {{ ratingInfo(emp) ? ((ratingInfo(emp)?.realRating ?? 0) | number:'1.1-1') : '—' }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="callBonus">
+                <th mat-header-cell *matHeaderCellDef>Bonus d'appel</th>
+                <td mat-cell *matCellDef="let emp">
+                  {{ ratingInfo(emp) ? ('+' + ((ratingInfo(emp)?.callBonus ?? 0) | number:'1.2-2')) : '—' }}
                 </td>
               </ng-container>
 
@@ -445,8 +489,10 @@
                       <mat-icon>edit</mat-icon>
                       <span>Modifier</span>
                     </button>
-                    <!-- USER-04: Service zones button -->
-                    <button mat-menu-item (click)="openZonesModal(emp)">
+                    <!-- USER-04 "Zones de service" masqué : la recherche utilise le gouvernorat du
+                         profil de l'artisan, et l'enregistrement de ce modal n'a pas d'endpoint
+                         backend. Code, endpoints et données conservés. -->
+                    <button mat-menu-item *ngIf="false" (click)="openZonesModal(emp)">
                       <mat-icon>map</mat-icon>
                       <span>Zones de service</span>
                     </button>
