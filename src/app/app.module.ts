@@ -1,7 +1,9 @@
-import { NgModule } from '@angular/core';
+import { LOCALE_ID, NgModule } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -32,23 +34,40 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatPaginatorIntl } from '@angular/material/paginator';
+
+// Briques partagées de la console
+import { ChipComponent } from './shared/chip.component';
+import { CellComponent } from './shared/cell.component';
+import { DataTableComponent } from './shared/data-table/data-table.component';
+import { ConfirmDialogComponent } from './shared/dialogs/confirm-dialog.component';
+import { FormDialogComponent } from './shared/dialogs/form-dialog.component';
+import { DetailSheetComponent } from './shared/dialogs/detail-sheet.component';
+import { KpiComponent, PageHeaderComponent } from './shared/page-header.component';
+import { FrenchPaginatorIntl } from './shared/paginator-intl';
+
+registerLocaleData(localeFr);
 
 // Components
 import { LoginComponent } from './features/auth/login/login.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
-import { UsersComponent } from './features/users/users.component';
-import { EmployeesComponent } from './features/employees/employees.component';
-import { AdminsComponent } from './features/admins/admins.component';
-import { RequestsComponent } from './features/requests/requests.component';
-import { ReservationsComponent } from './features/reservations/reservations.component';
-import { ReviewsComponent } from './features/reviews/reviews.component';
-import { CategoriesComponent } from './features/categories/categories.component';
-import { BoostsComponent } from './features/boosts/boosts.component';
-import { VerificationsComponent } from './features/verifications/verifications.component';
+import { ClientsPageComponent } from './features/clients/clients-page.component';
+import { ArtisansPageComponent } from './features/artisans/artisans-page.component';
+import { AdminsPageComponent } from './features/admins/admins-page.component';
+import { RequestsPageComponent } from './features/requests/requests-page.component';
+import { ReservationsPageComponent } from './features/reservations/reservations-page.component';
+import { ReviewsPageComponent } from './features/reviews/reviews-page.component';
+import { StoriesPageComponent } from './features/stories/stories-page.component';
+import { BoostsPageComponent } from './features/boosts/boosts-page.component';
+import { VerificationsPageComponent } from './features/verifications/verifications-page.component';
+import { SupportPageComponent } from './features/support/support-page.component';
+import { CategoriesPageComponent } from './features/categories/categories-page.component';
 import { LayoutComponent } from './core/layout/layout.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { PrivacyPolicyComponent } from './features/public/privacy-policy/privacy-policy.component';
 import { DeleteUserDataComponent } from './features/public/delete-user-data/delete-user-data.component';
+import { AuthExpiredInterceptor } from './core/services/auth-expired.interceptor';
 
 @NgModule({
   declarations: [
@@ -57,17 +76,27 @@ import { DeleteUserDataComponent } from './features/public/delete-user-data/dele
     PrivacyPolicyComponent,
     DeleteUserDataComponent,
     DashboardComponent,
-    UsersComponent,
-    EmployeesComponent,
-    AdminsComponent,
-    RequestsComponent,
-    ReservationsComponent,
-    ReviewsComponent,
-    CategoriesComponent,
-    BoostsComponent,
-    VerificationsComponent,
+    ClientsPageComponent,
+    ArtisansPageComponent,
+    AdminsPageComponent,
+    RequestsPageComponent,
+    ReservationsPageComponent,
+    ReviewsPageComponent,
+    StoriesPageComponent,
+    BoostsPageComponent,
+    VerificationsPageComponent,
+    SupportPageComponent,
+    CategoriesPageComponent,
     LayoutComponent,
     SettingsComponent,
+    ChipComponent,
+    CellComponent,
+    DataTableComponent,
+    ConfirmDialogComponent,
+    FormDialogComponent,
+    DetailSheetComponent,
+    PageHeaderComponent,
+    KpiComponent,
   ],
   imports: [
     BrowserModule,
@@ -101,8 +130,13 @@ import { DeleteUserDataComponent } from './features/public/delete-user-data/dele
     MatMenuModule,
     MatSlideToggleModule,
     MatDividerModule,
+    MatProgressBarModule,
   ],
-  providers: [],
+  providers: [
+    { provide: LOCALE_ID, useValue: 'fr' },
+    { provide: MatPaginatorIntl, useClass: FrenchPaginatorIntl },
+    { provide: HTTP_INTERCEPTORS, useClass: AuthExpiredInterceptor, multi: true },
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

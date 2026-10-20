@@ -1,127 +1,149 @@
 import { Component, OnInit } from '@angular/core';
-import { AdminService, DashboardStats } from '../../core/services/admin.service';
+import { Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { environment } from '../../../environments/environment';
+import { AuthService } from '../../core/services/auth.service';
+import { formatDayShort, formatMoney, formatNumber, relative } from '../../shared/format';
+import { REQUEST_STATUS, labelOf } from '../../shared/labels';
+import { ColumnDef, Tone } from '../../shared/models';
 
-// Extended stats interface for dashboard
-interface ExtendedDashboardStats extends DashboardStats {
-  pendingBoosts?: number;
-  pendingVerifications?: number;
-  activeBoosts?: number;
-  totalBoostRevenue?: number;
-  totalVerificationRevenue?: number;
+interface Bar {
+  day: string;
+  label: string;
+  total: number;
+  parts: { value: number; tone: string; label: string }[];
+  tooltip: string;
 }
 
+interface Breakdown {
+  label: string;
+  count: number;
+  pct: number;
+  tone?: Tone;
+  link?: string;
+  query?: any;
+}
+
+/** Tableau de bord : ce qui attend une action, indicateurs, tendances sur 30 jours, activité récente. */
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.scss']
+  styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent implements OnInit {
-  stats: ExtendedDashboardStats | null = null;
-  isLoading = true;
-  isCleaning = false;
-  
-  // DASH-01: Environment flag to hide cleanup button in production
-  isProduction = environment.production;
+  loading = true;
+  error: string | null = null;
+  data: any = null;
+  k: any = {};
 
-  constructor(
-    private adminService: AdminService,
-    private apiService: ApiService,
-    private snackBar: MatSnackBar
-  ) {}
+  signups: Bar[] = [];
+  requests: Bar[] = [];
+  requestsByStatus: Breakdown[] = [];
+  topProfessions: Breakdown[] = [];
+  topGovernorates: Breakdown[] = [];
+
+  readonly recentRequestColumns: ColumnDef[] = [
+    { key: 'createdAt', label: 'Publiée', type: 'datetime' },
+    { key: 'clientName', label: 'Client', type: 'person', subKey: 'clientPhone' },
+    { key: 'profession', label: 'Métier' },
+    { key: 'status', label: 'Statut', type: 'status', options: REQUEST_STATUS },
+  ];
+
+  readonly today = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Africa/Tunis', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  }).format(new Date());
+
+  constructor(private api: ApiService, private auth: AuthService, private router: Router) {}
 
   ngOnInit(): void {
-    this.loadStats();
+    this.load();
   }
 
-  loadStats(): void {
-    this.isLoading = true;
-    this.adminService.getDashboardStats().subscribe({
-      next: (data: any) => {
-        console.log('Dashboard stats received:', data);
-        this.stats = data;
-        // DASH-02: Load boost and verification stats
-        this.loadBoostAndVerificationStats();
+  load(): void {
+    this.loading = true;
+    this.error = null;
+    this.api.get<any>('/admin/v2/dashboard').subscribe({
+      next: r => {
+        this.data = r.data;
+        this.k = r.data?.kpis ?? {};
+        this.build();
+        this.loading = false;
       },
-      error: (error) => {
-        console.error('Error loading dashboard stats:', error);
-        this.isLoading = false;
-        // Fallback to mock data if API fails
-        this.stats = {
-          totalUsers: 0,
-          totalEmployees: 0,
-          totalRequests: 0,
-          totalReservations: 0,
-          pendingRequests: 0,
-          activeEmployees: 0,
-          totalRevenue: 0,
-          pendingBoosts: 0,
-          pendingVerifications: 0,
-          activeBoosts: 0,
-        };
-        this.snackBar.open('Erreur lors du chargement des statistiques', 'Fermer', {
-          duration: 3000,
-        });
+      error: e => {
+        this.error = e?.error?.message || 'Impossible de charger le tableau de bord';
+        this.loading = false;
       },
     });
   }
 
-  // DASH-02: Load boost and verification stats
-  loadBoostAndVerificationStats(): void {
-    // Load boost stats
-    this.apiService.get<any>('/boosts/stats').subscribe({
-      next: (response) => {
-        if (this.stats) {
-          const boostStats = response.data || response;
-          this.stats.pendingBoosts = boostStats.pendingCount || 0;
-          this.stats.activeBoosts = boostStats.activeCount || 0;
-          this.stats.totalBoostRevenue = boostStats.totalRevenue || 0;
-        }
-      },
-      error: (err) => console.error('Error loading boost stats:', err)
-    });
-
-    // Load verification stats
-    this.apiService.get<any>('/verifications/stats').subscribe({
-      next: (response) => {
-        if (this.stats) {
-          const verificationStats = response.data || response;
-          this.stats.pendingVerifications = verificationStats.pendingCount || 0;
-          this.stats.totalVerificationRevenue = verificationStats.totalRevenue || 0;
-        }
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Error loading verification stats:', err);
-        this.isLoading = false;
-      }
-    });
+  get firstName(): string {
+    return (this.auth.getCurrentUser()?.name || '').split(' ')[0] || 'à vous';
   }
 
-  cleanupDatabase(): void {
-    const confirmMessage = 'ATTENTION: Cette action va supprimer TOUTES les données (utilisateurs, employés, demandes, etc.) sauf les catégories et les administrateurs.\n\nÊtes-vous sûr de vouloir continuer ?';
-    
-    if (confirm(confirmMessage)) {
-      this.isCleaning = true;
-      this.adminService.cleanupDatabase().subscribe({
-        next: (result) => {
-          console.log('Cleanup result:', result);
-          this.snackBar.open('Base de données nettoyée avec succès !', 'Fermer', {
-            duration: 5000,
-          });
-          this.isCleaning = false;
-          this.loadStats(); // Recharger les stats
-        },
-        error: (error) => {
-          console.error('Cleanup error:', error);
-          this.snackBar.open('Erreur lors du nettoyage: ' + (error.message || 'Erreur inconnue'), 'Fermer', {
-            duration: 5000,
-          });
-          this.isCleaning = false;
-        }
-      });
+  get actions(): { label: string; hint: string; icon: string; count: number; tone: string; link: string; query: any }[] {
+    return [
+      { label: 'Boosts à valider', hint: 'Paiement à vérifier', icon: 'bolt', count: this.k.boostsPending ?? 0, tone: 'warning', link: '/boosts', query: { status: 'PENDING' } },
+      { label: 'Vérifications', hint: 'Pièces à contrôler', icon: 'verified', count: this.k.verificationsPending ?? 0, tone: 'info', link: '/verifications', query: { status: 'PENDING' } },
+      { label: 'Signalements', hint: 'Nouveaux messages', icon: 'support_agent', count: this.k.supportNew ?? 0, tone: 'danger', link: '/support', query: { status: 'NEW' } },
+      { label: 'Profils en modération', hint: 'Artisans à approuver', icon: 'engineering', count: this.k.artisansPendingModeration ?? 0, tone: 'violet', link: '/artisans', query: { status: 'PENDING_MODERATION' } },
+    ];
+  }
+
+  go(link: string, query?: any): void {
+    this.router.navigate([link], { queryParams: query });
+  }
+
+  money(v: any): string {
+    return formatMoney(v ?? 0);
+  }
+
+  num(v: any, d = 0): string {
+    return formatNumber(v ?? 0, d);
+  }
+
+  private build(): void {
+    const d = this.data ?? {};
+    for (const u of d.recentSignups ?? []) {
+      u.ago = relative(u.createdAt);
     }
+    this.signups = this.bars(d.signupsPerDay ?? [], [
+      { key: 'CLIENT', tone: 'primary', label: 'clients' },
+      { key: 'EMPLOYEE', tone: 'violet', label: 'artisans' },
+    ]);
+    this.requests = this.bars(d.requestsPerDay ?? [], [{ key: 'total', tone: 'info', label: 'demandes' }]);
+
+    const byStatus: Record<string, number> = d.requestsByStatus ?? {};
+    const totalReq = Object.values(byStatus).reduce((a, b) => a + b, 0) || 1;
+    this.requestsByStatus = REQUEST_STATUS
+      .filter(s => byStatus[s.value])
+      .map(s => ({ label: s.label, count: byStatus[s.value], pct: (byStatus[s.value] / totalReq) * 100, tone: s.tone, link: '/requests', query: { status: s.value } }));
+
+    const top = (rows: any[], link: string, param: string): Breakdown[] => {
+      const max = Math.max(1, ...rows.map(r => r.count));
+      return rows.map(r => ({ label: r.label, count: r.count, pct: (r.count / max) * 100, link, query: { [param]: r.label } }));
+    };
+    this.topProfessions = top(d.topProfessions ?? [], '/requests', 'profession');
+    this.topGovernorates = top(d.topGovernorates ?? [], '/artisans', 'governorate');
+  }
+
+  private bars(days: any[], series: { key: string; tone: string; label: string }[]): Bar[] {
+    return days.map(day => {
+      const parts = series.map(s => ({ value: Number(day[s.key] ?? 0), tone: s.tone, label: s.label }));
+      const total = series.length === 1 ? parts[0].value : parts.reduce((a, p) => a + p.value, 0);
+      const label = formatDayShort(day.day);
+      const detail = parts.filter(p => p.value > 0).map(p => `${p.value} ${p.label}`).join(', ');
+      return { day: day.day, label, total, parts, tooltip: `${label} : ${detail || 'aucune activité'}` };
+    });
+  }
+
+  maxOf(bars: Bar[]): number {
+    return Math.max(1, ...bars.map(b => b.total));
+  }
+
+  sumOf(bars: Bar[]): number {
+    return bars.reduce((a, b) => a + b.total, 0);
+  }
+
+  statusLabel(v: string) {
+    return labelOf(REQUEST_STATUS, v);
   }
 }

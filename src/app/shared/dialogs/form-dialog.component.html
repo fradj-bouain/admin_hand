@@ -1,0 +1,83 @@
+<form class="dialog form-dialog" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="dialog-head">
+    <div class="dialog-head-icon" *ngIf="data.icon"><mat-icon>{{ data.icon }}</mat-icon></div>
+    <div>
+      <h2>{{ data.title }}</h2>
+      <p *ngIf="data.subtitle">{{ data.subtitle }}</p>
+    </div>
+    <button mat-icon-button type="button" class="dialog-close" mat-dialog-close><mat-icon>close</mat-icon></button>
+  </div>
+
+  <div class="dialog-body">
+    <div class="form-error" *ngIf="error"><mat-icon>error_outline</mat-icon>{{ error }}</div>
+
+    <div class="form-grid">
+      <ng-container *ngFor="let f of data.fields">
+        <div class="field" [attr.data-field]="f.key" [class.full]="f.full || f.type === 'textarea' || f.type === 'image'" [class.invalid]="errorOf(f)">
+          <ng-container [ngSwitch]="f.type">
+            <label *ngSwitchCase="'toggle'" class="toggle-field">
+              <mat-slide-toggle [formControlName]="f.key" color="primary">{{ f.label }}</mat-slide-toggle>
+              <span class="field-hint" *ngIf="f.hint">{{ f.hint }}</span>
+            </label>
+
+            <ng-container *ngSwitchDefault>
+              <span class="field-label">{{ f.label }}<i *ngIf="f.required">*</i></span>
+
+              <ng-container [ngSwitch]="f.type">
+                <textarea *ngSwitchCase="'textarea'" rows="4" [formControlName]="f.key" [placeholder]="f.placeholder || ''"></textarea>
+
+                <select *ngSwitchCase="'select'" [formControlName]="f.key">
+                  <option value="" *ngIf="!f.required">—</option>
+                  <option *ngFor="let o of f.options" [value]="o.value">{{ o.label }}</option>
+                </select>
+
+                <mat-select *ngSwitchCase="'multiselect'" class="mselect" multiple [formControlName]="f.key"
+                            placeholder="Choisir…" panelClass="dt-select-panel">
+                  <mat-option *ngFor="let o of f.options" [value]="o.value">{{ o.label }}</mat-option>
+                </mat-select>
+
+                <div *ngSwitchCase="'color'" class="color-field">
+                  <input type="color" [formControlName]="f.key" />
+                  <input type="text" [formControlName]="f.key" placeholder="#0099CC" />
+                </div>
+
+                <div *ngSwitchCase="'image'" class="image-field">
+                  <div class="image-preview">
+                    <img *ngIf="preview(f.key) as src" [src]="src" alt="" />
+                    <mat-icon *ngIf="!preview(f.key)">image</mat-icon>
+                  </div>
+                  <div class="image-actions">
+                    <label class="btn-upload">
+                      <input type="file" accept="image/*" (change)="upload(f, $event)" hidden />
+                      <mat-icon>{{ uploading[f.key] ? 'hourglass_top' : 'upload' }}</mat-icon>
+                      {{ uploading[f.key] ? 'Envoi…' : 'Choisir une image' }}
+                    </label>
+                    <input type="text" [formControlName]="f.key" placeholder="ou coller une URL" />
+                  </div>
+                </div>
+
+                <input *ngSwitchCase="'datetime'" type="datetime-local" [formControlName]="f.key" />
+                <input *ngSwitchCase="'number'" type="number" step="any" [formControlName]="f.key"
+                       [placeholder]="f.placeholder || ''" />
+                <input *ngSwitchCase="'password'" type="text" autocomplete="off" [formControlName]="f.key"
+                       [placeholder]="f.placeholder || ''" />
+                <input *ngSwitchDefault [type]="f.type || 'text'" [formControlName]="f.key" [placeholder]="f.placeholder || ''" />
+              </ng-container>
+
+              <span class="field-error" *ngIf="errorOf(f) as e">{{ e }}</span>
+              <span class="field-hint" *ngIf="!errorOf(f) && f.hint">{{ f.hint }}</span>
+            </ng-container>
+          </ng-container>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="dialog-actions">
+    <button mat-button type="button" mat-dialog-close>Annuler</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="saving">
+      <mat-icon *ngIf="saving" class="spin">autorenew</mat-icon>
+      {{ saving ? 'Enregistrement…' : (data.submitLabel || 'Enregistrer') }}
+    </button>
+  </div>
+</form>

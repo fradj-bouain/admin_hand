@@ -1,0 +1,205 @@
+<div class="dt-card">
+  <!-- Barre d'outils -->
+  <div class="dt-toolbar">
+    <div class="dt-search">
+      <mat-icon>search</mat-icon>
+      <input type="search" [(ngModel)]="q" (ngModelChange)="onSearch()" [placeholder]="searchPlaceholder" />
+    </div>
+    <div class="dt-selection" *ngIf="selectable && selected.size > 0">
+      <span>{{ selected.size }} sélectionné{{ selected.size > 1 ? 's' : '' }}</span>
+      <button mat-button (click)="clearSelection()">Désélectionner</button>
+    </div>
+    <span class="spacer"></span>
+    <ng-content select="[dtActions]"></ng-content>
+    <button mat-stroked-button class="dt-reset" *ngIf="hasFilters" (click)="resetFilters()">
+      <mat-icon>filter_alt_off</mat-icon> Réinitialiser
+    </button>
+    <button mat-icon-button [matMenuTriggerFor]="colsMenu" matTooltip="Colonnes affichées">
+      <mat-icon>view_column</mat-icon>
+    </button>
+    <button mat-icon-button (click)="exportCsv()" [disabled]="exporting || total === 0" matTooltip="Exporter en CSV (filtres appliqués)">
+      <mat-icon>{{ exporting ? 'hourglass_top' : 'download' }}</mat-icon>
+    </button>
+    <button mat-icon-button (click)="refresh()" matTooltip="Actualiser"><mat-icon>refresh</mat-icon></button>
+  </div>
+
+  <mat-menu #colsMenu="matMenu" class="dt-cols-menu">
+    <div class="menu-title">Colonnes</div>
+    <button mat-menu-item *ngFor="let c of columns" (click)="$event.stopPropagation(); toggleColumn(c)">
+      <mat-icon>{{ hidden.has(c.key) ? 'check_box_outline_blank' : 'check_box' }}</mat-icon>
+      <span>{{ c.label }}</span>
+    </button>
+  </mat-menu>
+
+  <!-- Filtres actifs -->
+  <div class="dt-chips" *ngIf="activeChips.length || q.trim()">
+    <span class="filter-chip" *ngIf="q.trim()">
+      Recherche : « {{ q.trim() }} »
+      <button type="button" (click)="q = ''; refresh(true)"><mat-icon>close</mat-icon></button>
+    </span>
+    <span class="filter-chip" *ngFor="let chip of activeChips">
+      {{ chip.label }}
+      <button type="button" (click)="chip.remove()"><mat-icon>close</mat-icon></button>
+    </span>
+  </div>
+
+  <div class="dt-progress"><mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar></div>
+
+  <!-- Tableau -->
+  <div class="dt-scroll">
+    <table class="dt-table">
+      <thead>
+        <tr class="dt-head">
+          <th *ngIf="selectable" class="dt-check">
+            <mat-checkbox [checked]="allSelected" [indeterminate]="someSelected" (change)="toggleAll()"></mat-checkbox>
+          </th>
+          <th *ngFor="let c of shownColumns" [style.min-width]="c.width" [class.sortable]="sortOf(c)"
+              [class.sorted]="sortOf(c) && activeSort() === sortOf(c)" [class.align-end]="c.align === 'end'"
+              (click)="toggleSort(c)">
+            <span class="th-label">
+              {{ c.label }}
+              <mat-icon class="sort-icon" *ngIf="sortOf(c)">
+                {{ activeSort() === sortOf(c) ? (activeDir() === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+              </mat-icon>
+            </span>
+          </th>
+          <th *ngIf="actions.length" class="dt-actions-col sticky-end">Actions</th>
+        </tr>
+        <tr class="dt-filters">
+          <th *ngIf="selectable"></th>
+          <th *ngFor="let c of shownColumns">
+            <ng-container *ngIf="c.filter as f">
+              <ng-container [ngSwitch]="f.type">
+                <input *ngSwitchCase="'text'" class="f-input" type="search" [ngModel]="filters[param(c)] || ''"
+                       (ngModelChange)="setFilter(param(c), $event, true)" [placeholder]="f.placeholder || 'Filtrer…'" />
+
+                <select *ngSwitchCase="'select'" class="f-input" [class.active]="filters[param(c)]"
+                        [ngModel]="filters[param(c)] || ''" (ngModelChange)="setFilter(param(c), $event)">
+                  <option value="">Tous</option>
+                  <option *ngFor="let o of (f.options || c.options)" [value]="o.value">{{ o.label }}</option>
+                </select>
+
+                <mat-select *ngSwitchCase="'multiselect'" class="f-input f-mselect" [class.active]="filters[param(c)]"
+                            multiple placeholder="Tous" panelClass="dt-select-panel"
+                            [value]="multiValue(param(c))" (selectionChange)="setMulti(param(c), $event.value)">
+                  <mat-option *ngFor="let o of (f.options || c.options)" [value]="o.value">{{ o.label }}</mat-option>
+                </mat-select>
+
+                <select *ngSwitchCase="'boolean'" class="f-input" [class.active]="filters[param(c)]"
+                        [ngModel]="filters[param(c)] || ''" (ngModelChange)="setFilter(param(c), $event)">
+                  <option value="">Tous</option>
+                  <option value="true">{{ f.trueLabel || c.trueLabel || 'Oui' }}</option>
+                  <option value="false">{{ f.falseLabel || c.falseLabel || 'Non' }}</option>
+                </select>
+
+                <ng-container *ngSwitchCase="'date'">
+                  <button type="button" class="f-input f-range" [class.active]="rangeActive(c)"
+                          [matMenuTriggerFor]="dateMenu" #dateTrigger="matMenuTrigger" (menuOpened)="openRange(param(c), 'date')">
+                    <mat-icon>event</mat-icon><span>{{ rangeLabel(c) }}</span>
+                  </button>
+                  <mat-menu #dateMenu="matMenu" class="dt-range-menu" xPosition="before">
+                    <div class="range-box" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                      <div class="range-title">{{ c.label }}</div>
+                      <div class="quick">
+                        <button type="button" (click)="quickRange(param(c), 'today'); dateTrigger.closeMenu()">Aujourd'hui</button>
+                        <button type="button" (click)="quickRange(param(c), '7'); dateTrigger.closeMenu()">7 jours</button>
+                        <button type="button" (click)="quickRange(param(c), '30'); dateTrigger.closeMenu()">30 jours</button>
+                        <button type="button" (click)="quickRange(param(c), 'month'); dateTrigger.closeMenu()">Ce mois</button>
+                      </div>
+                      <label>Du<input type="date" [(ngModel)]="draft[param(c) + 'From']"
+                                     (keydown.enter)="applyRange(param(c), 'date'); dateTrigger.closeMenu()" /></label>
+                      <label>Au<input type="date" [(ngModel)]="draft[param(c) + 'To']"
+                                     (keydown.enter)="applyRange(param(c), 'date'); dateTrigger.closeMenu()" /></label>
+                      <div class="range-actions">
+                        <button mat-button type="button" (click)="clearRange(param(c), 'date'); dateTrigger.closeMenu()">Effacer</button>
+                        <button mat-flat-button color="primary" type="button" (click)="applyRange(param(c), 'date'); dateTrigger.closeMenu()">Appliquer</button>
+                      </div>
+                    </div>
+                  </mat-menu>
+                </ng-container>
+
+                <ng-container *ngSwitchCase="'number'">
+                  <button type="button" class="f-input f-range" [class.active]="rangeActive(c)"
+                          [matMenuTriggerFor]="numberMenu" #numberTrigger="matMenuTrigger" (menuOpened)="openRange(param(c), 'number')">
+                    <mat-icon>tune</mat-icon><span>{{ rangeLabel(c) }}</span>
+                  </button>
+                  <mat-menu #numberMenu="matMenu" class="dt-range-menu" xPosition="before">
+                    <div class="range-box" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                      <div class="range-title">{{ c.label }}</div>
+                      <label>Minimum<input type="number" step="any" [(ngModel)]="draft[param(c) + 'Min']"
+                                          (keydown.enter)="applyRange(param(c), 'number'); numberTrigger.closeMenu()" /></label>
+                      <label>Maximum<input type="number" step="any" [(ngModel)]="draft[param(c) + 'Max']"
+                                          (keydown.enter)="applyRange(param(c), 'number'); numberTrigger.closeMenu()" /></label>
+                      <div class="range-actions">
+                        <button mat-button type="button" (click)="clearRange(param(c), 'number'); numberTrigger.closeMenu()">Effacer</button>
+                        <button mat-flat-button color="primary" type="button" (click)="applyRange(param(c), 'number'); numberTrigger.closeMenu()">Appliquer</button>
+                      </div>
+                    </div>
+                  </mat-menu>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+          </th>
+          <th *ngIf="actions.length" class="sticky-end"></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let row of rows; trackBy: trackRow" class="dt-row" [class.clickable]="clickable"
+            [class.selected]="isSelected(row)" (click)="onRowClick(row)">
+          <td *ngIf="selectable" class="dt-check" (click)="$event.stopPropagation()">
+            <mat-checkbox [checked]="isSelected(row)" (change)="toggleRow(row)"></mat-checkbox>
+          </td>
+          <td *ngFor="let c of shownColumns" [class.align-end]="c.align === 'end'" [class.align-center]="c.align === 'center'">
+            <app-cell [column]="c" [row]="row"></app-cell>
+          </td>
+          <td *ngIf="actions.length" class="dt-row-actions sticky-end" (click)="$event.stopPropagation()">
+            <ng-container *ngFor="let a of visibleActions(row).slice(0, 3)">
+              <button mat-icon-button class="act act-{{ a.tone || 'neutral' }}" [matTooltip]="a.label" [attr.aria-label]="a.label"
+                      (click)="a.handler(row)">
+                <mat-icon>{{ a.icon }}</mat-icon>
+              </button>
+            </ng-container>
+            <ng-container *ngIf="visibleActions(row).length > 3">
+              <button mat-icon-button class="act" [matMenuTriggerFor]="moreMenu" matTooltip="Plus d'actions" aria-label="Plus d'actions">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #moreMenu="matMenu">
+                <button mat-menu-item *ngFor="let a of visibleActions(row).slice(3)" (click)="a.handler(row)"
+                        class="menu-act-{{ a.tone || 'neutral' }}">
+                  <mat-icon>{{ a.icon }}</mat-icon><span>{{ a.label }}</span>
+                </button>
+              </mat-menu>
+            </ng-container>
+          </td>
+        </tr>
+
+        <tr *ngIf="!loading && !error && rows.length === 0" class="dt-empty">
+          <td [attr.colspan]="shownColumns.length + (selectable ? 1 : 0) + (actions.length ? 1 : 0)">
+            <div class="empty">
+              <mat-icon>{{ emptyIcon }}</mat-icon>
+              <strong>{{ emptyText }}</strong>
+              <span *ngIf="hasFilters">Aucune ligne ne correspond aux filtres.</span>
+              <button mat-stroked-button *ngIf="hasFilters" (click)="resetFilters()">Effacer les filtres</button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="error" class="dt-empty">
+          <td [attr.colspan]="shownColumns.length + (selectable ? 1 : 0) + (actions.length ? 1 : 0)">
+            <div class="empty error">
+              <mat-icon>cloud_off</mat-icon>
+              <strong>{{ error }}</strong>
+              <button mat-stroked-button (click)="refresh()">Réessayer</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dt-footer">
+    <span class="dt-total">{{ total | number:'1.0-0':'fr' }} résultat{{ total > 1 ? 's' : '' }}</span>
+    <mat-paginator [length]="total" [pageIndex]="page" [pageSize]="size" [pageSizeOptions]="[10, 20, 50, 100]"
+                   (page)="onPage($event)" showFirstLastButtons></mat-paginator>
+  </div>
+</div>

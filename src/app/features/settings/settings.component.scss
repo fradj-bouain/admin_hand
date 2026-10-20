@@ -1,34 +1,4 @@
 .settings-container {
-  max-width: 1200px;
-  margin: 0 auto;
-
-  .page-header {
-    margin-bottom: 32px;
-
-    h1 {
-      margin: 0;
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-
-      mat-icon {
-        color: var(--primary);
-        font-size: 36px;
-        width: 36px;
-        height: 36px;
-      }
-    }
-
-    .subtitle {
-      margin: 8px 0 0;
-      color: var(--text-secondary);
-      font-size: 15px;
-    }
-  }
-
   .loading-container {
     display: flex;
     flex-direction: column;
