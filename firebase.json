@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "site": "snay3i-ef0c2-22996",
+    "public": "dist/handy-tunisia-admin",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/ChatGPT Image*"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+          { "key": "X-Frame-Options", "value": "DENY" }
+        ]
+      }
+    ]
+  }
+}

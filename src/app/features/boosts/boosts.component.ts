@@ -176,8 +176,8 @@ export class BoostsComponent implements OnInit {
 
   getBoostTypeLabel(type: string): string {
     switch (type?.toUpperCase()) {
-      case 'EXPRESS_24H': return 'Express 24h';
-      case 'WEEK': return 'Semaine';
+      case 'EXPRESS_24H': return 'Express 3j';
+      case 'WEEK': return 'Medium 12j';
       case 'MEGA_30D': return 'Mega 30j';
       default: return type || '-';
     }

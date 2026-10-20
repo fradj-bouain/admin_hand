@@ -42,8 +42,8 @@ export class SettingsComponent implements OnInit {
   
   // SET-02: Boost prices
   boostPrices: BoostPrice[] = [
-    { type: 'EXPRESS_24H', label: 'Express 24h', price: 15, duration: '24 heures' },
-    { type: 'WEEK', label: 'Semaine', price: 50, duration: '7 jours' },
+    { type: 'EXPRESS_24H', label: 'Express', price: 15, duration: '3 jours' },
+    { type: 'WEEK', label: 'Medium', price: 50, duration: '12 jours' },
     { type: 'MEGA_30D', label: 'Mega 30 jours', price: 150, duration: '30 jours' }
   ];
   
@@ -148,8 +148,8 @@ export class SettingsComponent implements OnInit {
     // Update local values
     const values = this.settingsForm.value;
     this.boostPrices = [
-      { type: 'EXPRESS_24H', label: 'Express 24h', price: values.express24hPrice, duration: '24 heures' },
-      { type: 'WEEK', label: 'Semaine', price: values.weekPrice, duration: '7 jours' },
+      { type: 'EXPRESS_24H', label: 'Express', price: values.express24hPrice, duration: '3 jours' },
+      { type: 'WEEK', label: 'Medium', price: values.weekPrice, duration: '12 jours' },
       { type: 'MEGA_30D', label: 'Mega 30 jours', price: values.mega30dPrice, duration: '30 jours' }
     ];
     
