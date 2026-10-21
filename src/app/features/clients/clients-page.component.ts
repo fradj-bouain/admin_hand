@@ -3,7 +3,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ConsolePage, ConsoleService, PageKpi } from '../../shared/console';
 import { ChatService } from '../messages/chat.service';
 import { ColumnDef, DetailData, FormField, RowAction } from '../../shared/models';
-import { GOVERNORATE_OPTIONS, RESERVATION_STATUS, REQUEST_STATUS } from '../../shared/labels';
+import { ADS_STATE, GOVERNORATE_OPTIONS, RESERVATION_STATUS, REQUEST_STATUS, labelOf } from '../../shared/labels';
 import { UiService } from '../../shared/ui.service';
 
 @Component({
@@ -20,9 +20,17 @@ import { UiService } from '../../shared/ui.service';
                  [clickable]="true" [active]="kpiActive(k)" (click)="applyKpi(k)"></app-kpi>
       </div>
 
-      <app-data-table [endpoint]="endpoint" [columns]="columns" [actions]="actions" exportName="clients"
+      <app-data-table [endpoint]="endpoint" [columns]="columns" [actions]="actions" [selectable]="true" exportName="clients"
                       [defaultSort]="{ key: 'createdAt', dir: 'desc' }" emptyIcon="person_off"
-                      searchPlaceholder="Nom, téléphone, email, ville…" (rowClick)="open($event)"></app-data-table>
+                      searchPlaceholder="Nom, téléphone, email, ville…" (rowClick)="open($event)"
+                      (selectionChange)="selection = $event">
+        <button dtActions mat-stroked-button *ngIf="selection.length" (click)="hideAds(selection)">
+          <mat-icon>visibility_off</mat-icon>Masquer les pubs ({{ selection.length }})
+        </button>
+        <button dtActions mat-stroked-button *ngIf="selection.length" (click)="showAds(selection)">
+          <mat-icon>visibility</mat-icon>Réafficher les pubs
+        </button>
+      </app-data-table>
     </div>
   `,
 })
@@ -34,6 +42,7 @@ export class ClientsPageComponent extends ConsolePage {
     { key: 'active', label: 'Comptes actifs', icon: 'how_to_reg', tone: 'success', filter: { active: 'true' } },
     { key: 'inactive', label: 'Comptes désactivés', icon: 'person_off', tone: 'neutral', filter: { active: 'false' } },
     { key: 'withRequests', label: 'Ont publié une demande', icon: 'assignment_ind', tone: 'info', filter: { requestsMin: '1' } },
+    { key: 'adsHidden', label: 'Pubs masquées', icon: 'visibility_off', tone: 'violet', filter: { ads: 'hidden' } },
   ];
 
   readonly columns: ColumnDef[] = [
@@ -41,12 +50,13 @@ export class ClientsPageComponent extends ConsolePage {
     { key: 'phone', label: 'Téléphone', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'email', label: 'Email', filter: { type: 'text' }, hidden: true },
     { key: 'governorate', label: 'Gouvernorat', filter: { type: 'select', options: GOVERNORATE_OPTIONS } },
+    { key: 'ads', label: 'Publicités', type: 'status', options: ADS_STATE, sortKey: false, filter: { type: 'select' } },
     { key: 'city', label: 'Ville', filter: { type: 'text' } },
     { key: 'requests', label: 'Demandes', type: 'number', align: 'end', filter: { type: 'number' } },
     { key: 'reservations', label: 'Réservations', type: 'number', align: 'end', filter: { type: 'number' } },
     { key: 'reviews', label: 'Avis donnés', type: 'number', align: 'end', filter: { type: 'number' }, hidden: true },
     { key: 'active', label: 'Compte', type: 'boolean', trueLabel: 'Actif', falseLabel: 'Désactivé', filter: { type: 'boolean' } },
-    { key: 'premium', label: 'Premium', type: 'boolean', trueLabel: 'Premium', falseLabel: 'Non', sortKey: false, filter: { type: 'boolean' } },
+    { key: 'adsHiddenUntil', label: "Pubs masquées jusqu'au", type: 'datetime', sortKey: false, hidden: true },
     { key: 'createdAt', label: 'Inscription', type: 'datetime', filter: { type: 'date' } },
     { key: 'lastSeen', label: 'Dernière visite', type: 'datetime', filter: { type: 'date' } },
   ];
@@ -58,7 +68,11 @@ export class ClientsPageComponent extends ConsolePage {
     { icon: 'block', label: 'Désactiver le compte', tone: 'danger', visible: r => r.active, handler: r => this.setActive(r, false) },
     { icon: 'check_circle', label: 'Réactiver le compte', tone: 'success', visible: r => !r.active, handler: r => this.setActive(r, true) },
     { icon: 'key', label: 'Nouveau mot de passe', handler: r => this.resetPassword(r) },
+    { icon: 'visibility_off', label: 'Masquer les pubs', visible: r => r.ads === 'shown', handler: r => this.hideAds([r]) },
+    { icon: 'visibility', label: 'Réafficher les pubs', visible: r => r.ads === 'hidden', handler: r => this.showAds([r]) },
   ];
+
+  selection: any[] = [];
 
   constructor(console: ConsoleService, ui: UiService, api: ApiService, private chats: ChatService) {
     super(console, ui, api);
@@ -117,6 +131,68 @@ export class ClientsPageComponent extends ConsolePage {
     );
   }
 
+  /** Plus aucune publicité pour ces clients, sans abonnement (faveur de l'équipe). */
+  hideAds(rows: any[]): void {
+    const names = rows.length === 1 ? rows[0].name : `${rows.length} clients`;
+    this.ui.form({
+      title: 'Masquer les publicités',
+      subtitle: `${names} : plus aucune publicité dans l'application, sans abonnement.`,
+      icon: 'visibility_off',
+      submitLabel: 'Masquer les pubs',
+      value: { duration: 'forever' },
+      fields: [
+        {
+          key: 'duration', label: 'Durée', type: 'select', required: true, full: true, options: [
+            { value: 'forever', label: "Sans limite (jusqu'à ce qu'un admin les réaffiche)" },
+            { value: '30', label: '1 mois' },
+            { value: '90', label: '3 mois' },
+            { value: '180', label: '6 mois' },
+            { value: '365', label: '1 an' },
+          ],
+        },
+        { key: 'note', label: "Raison (visible par l'équipe)", placeholder: 'Partenaire, geste commercial, test…', full: true },
+      ],
+      submit: v => this.api.post('/admin/v2/clients/ads/hide', {
+        userIds: rows.map(r => r.id),
+        days: v.duration === 'forever' ? null : Number(v.duration),
+        note: v.note || null,
+      }),
+    }).subscribe(r => {
+      if (r) {
+        this.ui.toast(rows.length === 1 ? `Publicités masquées pour ${rows[0].name}` : `Publicités masquées pour ${rows.length} clients`);
+        this.table?.clearSelection();
+        this.reload();
+      }
+    });
+  }
+
+  /** Réaffiche les publicités (un abonné Premium payé reste sans publicité). */
+  showAds(rows: any[]): void {
+    this.ui.confirm({
+      title: 'Réafficher les publicités ?',
+      message: rows.length === 1
+        ? `${rows[0].name} verra de nouveau les publicités (sauf s'il a un abonnement Premium payé).`
+        : `${rows.length} clients verront de nouveau les publicités (sauf les abonnés Premium payés).`,
+      icon: 'visibility', tone: 'warning', confirmLabel: 'Réafficher',
+    }).subscribe(ok => {
+      if (ok) {
+        this.act(this.api.post('/admin/v2/clients/ads/show', { userIds: rows.map(r => r.id) }),
+          'Publicités réaffichées', () => this.table?.clearSelection());
+      }
+    });
+  }
+
+  private adsText(c: any): string {
+    const state = labelOf(ADS_STATE, c.ads)?.label ?? '—';
+    if (c.ads !== 'hidden') {
+      return state;
+    }
+    const until = c.adsHiddenUntil ? ` jusqu'au ${new Date(c.adsHiddenUntil).toLocaleDateString('fr-FR', { timeZone: 'Africa/Tunis' })}` : ' sans limite';
+    const by = c.adsHiddenBy ? ` · par ${c.adsHiddenBy}` : '';
+    const note = c.adsHiddenNote ? ` · « ${c.adsHiddenNote} »` : '';
+    return `${state}${until}${by}${note}`;
+  }
+
   open(row: any): void {
     this.api.get<any>(`/admin/v2/clients/${row.id}`).subscribe({
       next: r => this.ui.detail(this.detail(r.data)),
@@ -148,6 +224,7 @@ export class ClientsPageComponent extends ConsolePage {
             { label: 'Score de confiance', value: c.trustScore, type: 'rating' },
             { label: 'Inscription', value: c.createdAt, type: 'datetime' },
             { label: 'Dernière visite', value: c.lastSeen, type: 'datetime' },
+            { label: 'Publicités', value: this.adsText(c), full: true },
           ],
         },
       ],
@@ -188,6 +265,8 @@ export class ClientsPageComponent extends ConsolePage {
           ? { label: 'Désactiver', icon: 'block', tone: 'danger', handler: () => this.setActive(c, false) }
           : { label: 'Réactiver', icon: 'check_circle', tone: 'success', handler: () => this.setActive(c, true) },
         { label: 'Mot de passe', icon: 'key', handler: () => this.resetPassword(c) },
+        ...(c.ads === 'shown' ? [{ label: 'Masquer les pubs', icon: 'visibility_off', handler: () => this.hideAds([c]) }] : []),
+        ...(c.ads === 'hidden' ? [{ label: 'Réafficher les pubs', icon: 'visibility', handler: () => this.showAds([c]) }] : []),
       ],
     };
   }

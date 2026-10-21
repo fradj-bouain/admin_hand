@@ -78,6 +78,13 @@ export const PREMIUM_STATUS: Option[] = [
   { value: 'UNKNOWN', label: 'Inconnu', tone: 'neutral' },
 ];
 
+/** Publicités dans l'app pour un client : Premium payé, masquées par l'équipe, ou affichées. */
+export const ADS_STATE: Option[] = [
+  { value: 'shown', label: 'Affichées', tone: 'neutral' },
+  { value: 'hidden', label: 'Masquées (offert)', tone: 'info' },
+  { value: 'premium', label: 'Premium', tone: 'violet' },
+];
+
 export const PREMIUM_PLAN: Option[] = [
   { value: 'monthly', label: 'Mensuel', tone: 'info' },
   { value: 'yearly', label: 'Annuel', tone: 'violet' },
