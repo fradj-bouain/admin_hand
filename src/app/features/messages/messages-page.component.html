@@ -1,0 +1,157 @@
+<div class="page messages-page">
+  <app-page-header icon="forum" title="Messages"
+                   subtitle="Écrivez à un client ou à un artisan : il reçoit une notification et répond depuis l'écran Messages de l'application.">
+    <button mat-flat-button color="primary" (click)="newChat()"><mat-icon>add_comment</mat-icon>Nouvelle discussion</button>
+  </app-page-header>
+
+  <div class="chat-shell" [class.has-active]="!!active">
+    <!-- ===== Discussions ===== -->
+    <aside class="chat-list">
+      <div class="cl-search">
+        <mat-icon>search</mat-icon>
+        <input type="search" [(ngModel)]="q" (ngModelChange)="onSearch()" placeholder="Nom, téléphone ou message…" />
+      </div>
+      <div class="cl-filters">
+        <button *ngFor="let f of filters" type="button" [class.on]="listFilter === f.key" (click)="setFilter(f.key)">{{ f.label }}</button>
+      </div>
+      <div class="cl-progress"><mat-progress-bar *ngIf="listLoading" mode="indeterminate"></mat-progress-bar></div>
+
+      <div class="cl-items">
+        <button type="button" *ngFor="let c of conversations; trackBy: trackConv" class="cl-item"
+                [class.active]="active?.id === c.id" [class.unread]="c.unread > 0" (click)="open(c)">
+          <span class="avatar" [class.artisan]="c.type === 'EMPLOYEE'">
+            <img *ngIf="c.photoUrl" [src]="c.photoUrl" alt="" (error)="c.photoUrl = undefined" />
+            <ng-container *ngIf="!c.photoUrl">{{ initialsOf(c.name) }}</ng-container>
+          </span>
+          <span class="cl-text">
+            <span class="cl-top">
+              <strong>{{ c.name }}</strong>
+              <em>{{ when(c.lastMessageAt || c.createdAt) }}</em>
+            </span>
+            <span class="cl-bottom">
+              <span class="cl-preview">{{ c.lastMessageText || 'Nouvelle discussion' }}</span>
+              <span class="cl-badge" *ngIf="c.unread > 0">{{ c.unread }}</span>
+            </span>
+            <span class="cl-meta">
+              <span class="type" [class.artisan]="c.type === 'EMPLOYEE'">{{ c.type === 'EMPLOYEE' ? 'Artisan' : 'Client' }}</span>
+              <span>{{ phone(c.phone) }}</span>
+            </span>
+          </span>
+        </button>
+
+        <div class="cl-empty" *ngIf="!listLoading && !conversations.length">
+          <mat-icon>forum</mat-icon>
+          <strong>{{ q || listFilter !== 'all' ? 'Aucune discussion trouvée' : 'Aucune discussion' }}</strong>
+          <span *ngIf="!q && listFilter === 'all'">Écrivez à un client ou à un artisan pour commencer.</span>
+          <button mat-stroked-button (click)="newChat()"><mat-icon>add_comment</mat-icon>Nouvelle discussion</button>
+        </div>
+
+        <button mat-button class="cl-more" *ngIf="conversations.length < total" (click)="loadMore()" [disabled]="listLoading">
+          Afficher plus ({{ total - conversations.length }})
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== Discussion ouverte ===== -->
+    <section class="chat-thread" *ngIf="active; else nothingOpen">
+      <header class="ct-head">
+        <button mat-icon-button class="ct-back" (click)="close()" aria-label="Retour aux discussions"><mat-icon>arrow_back</mat-icon></button>
+        <span class="avatar" [class.artisan]="active.type === 'EMPLOYEE'">
+          <img *ngIf="active.photoUrl" [src]="active.photoUrl" alt="" (error)="active.photoUrl = undefined" />
+          <ng-container *ngIf="!active.photoUrl">{{ initialsOf(active.name) }}</ng-container>
+        </span>
+        <div class="ct-title">
+          <strong>{{ active.name }}</strong>
+          <span>
+            <app-chip [label]="active.type === 'EMPLOYEE' ? 'Artisan' : 'Client'" [tone]="active.type === 'EMPLOYEE' ? 'violet' : 'primary'"></app-chip>
+            <a *ngIf="active.phone" [href]="'tel:' + active.phone">{{ phone(active.phone) }}</a>
+            <ng-container *ngIf="active.profession"> · {{ active.profession }}</ng-container>
+            <ng-container *ngIf="active.governorate"> · {{ active.governorate }}</ng-container>
+          </span>
+        </div>
+        <span class="spacer"></span>
+        <a mat-stroked-button [routerLink]="fileLink(active)" [queryParams]="fileQuery(active)" class="ct-file">
+          <mat-icon>badge</mat-icon>Fiche
+        </a>
+        <button mat-stroked-button class="ct-archive" *ngIf="isSuperAdmin" (click)="archive()" matTooltip="Supprimer définitivement la discussion">
+          <mat-icon>delete_forever</mat-icon>Archiver
+        </button>
+      </header>
+
+      <div class="ct-notice" *ngIf="!active.pushReady">
+        <mat-icon>notifications_off</mat-icon>
+        Notifications désactivées sur son téléphone : il verra vos messages en ouvrant l'application.
+      </div>
+      <div class="ct-notice warn" *ngIf="!active.active">
+        <mat-icon>block</mat-icon>
+        Compte désactivé : cette personne ne peut pas se connecter pour lire vos messages.
+      </div>
+
+      <div class="ct-messages" #scroller>
+        <div class="ct-older" *ngIf="hasOlder">
+          <button mat-button (click)="loadOlder()" [disabled]="loadingOlder">
+            <mat-icon>history</mat-icon>{{ loadingOlder ? 'Chargement…' : 'Messages plus anciens' }}
+          </button>
+        </div>
+        <mat-progress-bar *ngIf="threadLoading" mode="indeterminate"></mat-progress-bar>
+
+        <div class="ct-start" *ngIf="!threadLoading && !messages.length">
+          <mat-icon>waving_hand</mat-icon>
+          <strong>Premier message à {{ active.name }}</strong>
+          <span>Il apparaîtra dans ses Messages sous le nom « SNAY3I Support », avec une notification.</span>
+        </div>
+
+        <ng-container *ngFor="let it of thread; trackBy: trackItem">
+          <div class="ct-day" *ngIf="it.kind === 'day'"><span>{{ it.label }}</span></div>
+          <div class="bubble-row" *ngIf="it.kind === 'msg'" [class.mine]="it.m.mine" [class.first]="it.first">
+            <div class="bubble" [class.has-image]="it.m.imageUrl">
+              <a *ngIf="it.m.imageUrl" [href]="it.m.imageUrl" target="_blank" rel="noopener" class="bubble-img">
+                <img [src]="it.m.imageUrl" alt="Photo" loading="lazy" />
+              </a>
+              <p *ngIf="it.m.text">{{ it.m.text }}</p>
+              <span class="bubble-meta">
+                <ng-container *ngIf="it.m.mine && it.m.adminName">{{ it.m.adminName }} · </ng-container>{{ time(it.m.createdAt) }}
+                <mat-icon *ngIf="it.m.mine" class="tick" [class.read]="it.m.read" [matTooltip]="it.m.read ? 'Lu' : 'Envoyé'">
+                  {{ it.m.read ? 'done_all' : 'done' }}
+                </mat-icon>
+              </span>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <footer class="ct-composer">
+        <div class="ct-attachment" *ngIf="image">
+          <img [src]="image.preview" alt="" />
+          <div>
+            <strong>{{ image.file.name }}</strong>
+            <span>Les personnes qui n'ont pas encore la nouvelle version de l'app voient « 📷 Photo ».</span>
+          </div>
+          <button mat-icon-button (click)="clearImage()" aria-label="Retirer la photo"><mat-icon>close</mat-icon></button>
+        </div>
+        <div class="ct-input">
+          <input #file type="file" accept="image/*" hidden (change)="pickImage(file)" />
+          <button mat-icon-button (click)="file.click()" [disabled]="sending" matTooltip="Joindre une photo" aria-label="Joindre une photo">
+            <mat-icon>add_photo_alternate</mat-icon>
+          </button>
+          <textarea #composer rows="1" [(ngModel)]="draft" (keydown)="onKeydown($event)" [disabled]="sending"
+                    placeholder="Écrire un message… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)" cdkTextareaAutosize
+                    [cdkAutosizeMinRows]="1" [cdkAutosizeMaxRows]="6"></textarea>
+          <button mat-flat-button color="primary" class="ct-send" (click)="send()" [disabled]="!canSend" aria-label="Envoyer">
+            <mat-icon [class.spin]="sending">{{ sending ? 'autorenew' : 'send' }}</mat-icon>
+          </button>
+        </div>
+        <span class="ct-count" *ngIf="draft.length > maxText - 200" [class.over]="draft.length > maxText">{{ draft.length }} / {{ maxText }}</span>
+      </footer>
+    </section>
+
+    <ng-template #nothingOpen>
+      <section class="chat-thread empty">
+        <mat-icon>chat</mat-icon>
+        <strong>Choisissez une discussion</strong>
+        <span>ou commencez-en une avec un client ou un artisan.</span>
+        <button mat-flat-button color="primary" (click)="newChat()"><mat-icon>add_comment</mat-icon>Nouvelle discussion</button>
+      </section>
+    </ng-template>
+  </div>
+</div>

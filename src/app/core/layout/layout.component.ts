@@ -5,6 +5,7 @@ import { forkJoin, interval, of, Subscription } from 'rxjs';
 import { catchError, filter, map } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { ApiService } from '../services/api.service';
+import { ChatService } from '../../features/messages/chat.service';
 
 interface NavItem {
   path: string;
@@ -24,6 +25,7 @@ interface Pending {
   verifications: number;
   support: number;
   moderation: number;
+  messages: number;
 }
 
 /** Structure de la console : menu latéral, barre du haut, actions en attente. */
@@ -61,7 +63,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
     },
     {
       title: 'Support',
-      items: [{ path: '/support', label: 'Signalements', icon: 'support_agent', badge: 'support', tone: 'danger' }],
+      items: [
+        { path: '/messages', label: 'Messages', icon: 'forum', badge: 'messages', tone: 'info' },
+        { path: '/support', label: 'Signalements', icon: 'support_agent', badge: 'support', tone: 'danger' },
+      ],
     },
     {
       title: 'Configuration',
@@ -72,7 +77,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     },
   ];
 
-  pending: Pending = { boosts: 0, verifications: 0, support: 0, moderation: 0 };
+  pending: Pending = { boosts: 0, verifications: 0, support: 0, moderation: 0, messages: 0 };
   isMobile = false;
   sidenavOpen = true;
   currentTitle = '';
@@ -84,6 +89,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     private api: ApiService,
     private breakpoints: BreakpointObserver,
     private router: Router,
+    private chats: ChatService,
   ) {}
 
   ngOnInit(): void {
@@ -99,7 +105,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
         }
       }),
       interval(60_000).subscribe(() => this.loadPending()),
+      // Réponses des utilisateurs : compteur rafraîchi plus souvent
+      interval(20_000).pipe(filter(() => !document.hidden)).subscribe(() => this.chats.refreshUnread()),
+      this.chats.unread$.subscribe(n => (this.pending = { ...this.pending, messages: n })),
     );
+    this.chats.refreshUnread();
     this.updateTitle();
     this.loadPending();
   }
@@ -117,15 +127,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
       verifications: count('/verifications/stats', undefined, d => d?.pendingCount),
       support: count('/admin/v2/support-reports', { status: 'NEW', size: 1 }, d => d?.totalElements),
       moderation: count('/admin/v2/employees', { status: 'PENDING_MODERATION', size: 1 }, d => d?.totalElements),
-    }).subscribe(p => (this.pending = p));
+    }).subscribe(p => (this.pending = { ...p, messages: this.pending.messages }));
   }
 
   get totalPending(): number {
-    return this.pending.boosts + this.pending.verifications + this.pending.support + this.pending.moderation;
+    return this.pending.boosts + this.pending.verifications + this.pending.support + this.pending.moderation + this.pending.messages;
   }
 
   get pendingItems(): { label: string; icon: string; link: string; query: any; count: number; tone: string }[] {
     const items = [
+      { label: 'Messages non lus', icon: 'forum', link: '/messages', query: { filter: 'unread' }, count: this.pending.messages, tone: 'info' },
       { label: 'Boosts à valider', icon: 'bolt', link: '/boosts', query: { status: 'PENDING' }, count: this.pending.boosts, tone: 'warning' },
       { label: 'Vérifications à traiter', icon: 'verified', link: '/verifications', query: { status: 'PENDING' }, count: this.pending.verifications, tone: 'info' },
       { label: 'Nouveaux signalements', icon: 'support_agent', link: '/support', query: { status: 'NEW' }, count: this.pending.support, tone: 'danger' },

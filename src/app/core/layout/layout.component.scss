@@ -290,10 +290,11 @@
   }
 }
 
-.tone-warning { color: var(--warning) !important; }
-.tone-danger { color: var(--danger) !important; }
-.tone-info { color: var(--info) !important; }
-.tone-violet { color: var(--violet) !important; }
+// Icônes colorées du menu des actions en attente (pas les pastilles du menu, qui ont un texte blanc)
+mat-icon.tone-warning { color: var(--warning) !important; }
+mat-icon.tone-danger { color: var(--danger) !important; }
+mat-icon.tone-info { color: var(--info) !important; }
+mat-icon.tone-violet { color: var(--violet) !important; }
 
 .content {
   padding: 22px 24px 40px;

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { ConsolePage, ConsoleService, PageKpi } from '../../shared/console';
+import { ChatService } from '../messages/chat.service';
 import { ColumnDef, DetailData, FormField, Option, RowAction } from '../../shared/models';
 import { APPLICANT_STATUS, BADGE_STATUS, BOOST_STATUS, BOOST_TYPE, EMPLOYEE_STATUS, GOVERNORATE_OPTIONS, REQUEST_STATUS, RESERVATION_STATUS, STORY_STATE, VERIFICATION_STATUS, labelOf } from '../../shared/labels';
 import { UiService } from '../../shared/ui.service';
@@ -72,6 +73,7 @@ export class ArtisansPageComponent extends ConsolePage {
 
   readonly actions: RowAction[] = [
     { icon: 'visibility', label: 'Voir la fiche', tone: 'primary', handler: r => this.open(r) },
+    { icon: 'chat', label: 'Écrire', tone: 'info', visible: r => !!r.userId, handler: r => this.chats.writeTo(r.userId) },
     { icon: 'task_alt', label: 'Approuver le profil', tone: 'success', visible: r => r.status === 'PENDING_MODERATION', handler: r => this.setStatus(r, 'ACTIVE') },
     { icon: 'edit', label: 'Modifier', handler: r => this.edit(r) },
     { icon: 'verified', label: 'Marquer vérifié', tone: 'info', visible: r => !r.verified, handler: r => this.verify(r) },
@@ -81,7 +83,7 @@ export class ArtisansPageComponent extends ConsolePage {
     { icon: 'key', label: 'Nouveau mot de passe', handler: r => this.resetPassword(r) },
   ];
 
-  constructor(console: ConsoleService, ui: UiService, api: ApiService) {
+  constructor(console: ConsoleService, ui: UiService, api: ApiService, private chats: ChatService) {
     super(console, ui, api);
     console.categoryOptions().subscribe(o => (this.professions = o));
   }
@@ -206,6 +208,9 @@ export class ArtisansPageComponent extends ConsolePage {
   private detail(e: any): DetailData {
     const status = labelOf(EMPLOYEE_STATUS, e.status);
     const actions: DetailData['actions'] = [{ label: 'Modifier', icon: 'edit', handler: () => this.edit(e) }];
+    if (e.userId) {
+      actions.unshift({ label: 'Écrire', icon: 'chat', tone: 'primary', handler: () => this.chats.writeTo(e.userId) });
+    }
     if (e.status === 'PENDING_MODERATION') {
       actions.unshift({ label: 'Approuver', icon: 'task_alt', tone: 'success', handler: () => this.setStatus(e, 'ACTIVE') });
     }

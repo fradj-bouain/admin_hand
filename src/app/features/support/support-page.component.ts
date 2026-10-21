@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { ConsolePage, ConsoleService, PageKpi } from '../../shared/console';
+import { ChatService } from '../messages/chat.service';
 import { ColumnDef, RowAction } from '../../shared/models';
 import { SUPPORT_CATEGORY, SUPPORT_STATUS, labelOf } from '../../shared/labels';
 import { UiService } from '../../shared/ui.service';
@@ -47,12 +48,13 @@ export class SupportPageComponent extends ConsolePage {
 
   readonly actions: RowAction[] = [
     { icon: 'visibility', label: 'Lire', tone: 'primary', handler: r => this.open(r) },
+    { icon: 'chat', label: 'Répondre dans Messages', tone: 'info', visible: r => !!r.userId, handler: r => this.chats.writeTo(r.userId) },
     { icon: 'pending_actions', label: 'Prendre en charge', tone: 'warning', visible: r => r.status === 'NEW', handler: r => this.setStatus(r, 'IN_PROGRESS') },
     { icon: 'task_alt', label: 'Marquer résolu', tone: 'success', visible: r => r.status !== 'RESOLVED', handler: r => this.setStatus(r, 'RESOLVED') },
     { icon: 'replay', label: 'Rouvrir', visible: r => r.status === 'RESOLVED', handler: r => this.setStatus(r, 'NEW') },
   ];
 
-  constructor(console: ConsoleService, ui: UiService, api: ApiService) {
+  constructor(console: ConsoleService, ui: UiService, api: ApiService, private chats: ChatService) {
     super(console, ui, api);
   }
 
@@ -94,6 +96,7 @@ export class SupportPageComponent extends ConsolePage {
         },
       ],
       actions: [
+        ...(s.userId ? [{ label: 'Répondre dans Messages', icon: 'chat', tone: 'primary' as const, handler: () => this.chats.writeTo(s.userId) }] : []),
         ...(s.status === 'NEW' ? [{ label: 'Prendre en charge', icon: 'pending_actions', tone: 'warning' as const, handler: () => this.setStatus(s, 'IN_PROGRESS') }] : []),
         ...(s.status !== 'RESOLVED'
           ? [{ label: 'Marquer résolu', icon: 'task_alt', tone: 'success' as const, handler: () => this.setStatus(s, 'RESOLVED') }]

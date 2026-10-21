@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { ConsolePage, ConsoleService, PageKpi } from '../../shared/console';
+import { ChatService } from '../messages/chat.service';
 import { ColumnDef, DetailData, FormField, RowAction } from '../../shared/models';
 import { GOVERNORATE_OPTIONS, RESERVATION_STATUS, REQUEST_STATUS } from '../../shared/labels';
 import { UiService } from '../../shared/ui.service';
@@ -51,13 +52,14 @@ export class ClientsPageComponent extends ConsolePage {
 
   readonly actions: RowAction[] = [
     { icon: 'visibility', label: 'Voir la fiche', tone: 'primary', handler: r => this.open(r) },
+    { icon: 'chat', label: 'Écrire', tone: 'info', handler: r => this.chats.writeTo(r.id) },
     { icon: 'edit', label: 'Modifier', handler: r => this.edit(r) },
     { icon: 'block', label: 'Désactiver le compte', tone: 'danger', visible: r => r.active, handler: r => this.setActive(r, false) },
     { icon: 'check_circle', label: 'Réactiver le compte', tone: 'success', visible: r => !r.active, handler: r => this.setActive(r, true) },
     { icon: 'key', label: 'Nouveau mot de passe', handler: r => this.resetPassword(r) },
   ];
 
-  constructor(console: ConsoleService, ui: UiService, api: ApiService) {
+  constructor(console: ConsoleService, ui: UiService, api: ApiService, private chats: ChatService) {
     super(console, ui, api);
   }
 
@@ -179,6 +181,7 @@ export class ClientsPageComponent extends ConsolePage {
         },
       ],
       actions: [
+        { label: 'Écrire', icon: 'chat', tone: 'primary', handler: () => this.chats.writeTo(c.id) },
         { label: 'Modifier', icon: 'edit', handler: () => this.edit(c) },
         c.active
           ? { label: 'Désactiver', icon: 'block', tone: 'danger', handler: () => this.setActive(c, false) }

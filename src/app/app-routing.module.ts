@@ -14,6 +14,7 @@ import { StoriesPageComponent } from './features/stories/stories-page.component'
 import { BoostsPageComponent } from './features/boosts/boosts-page.component';
 import { VerificationsPageComponent } from './features/verifications/verifications-page.component';
 import { SupportPageComponent } from './features/support/support-page.component';
+import { MessagesPageComponent } from './features/messages/messages-page.component';
 import { CategoriesPageComponent } from './features/categories/categories-page.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { PrivacyPolicyComponent } from './features/public/privacy-policy/privacy-policy.component';
@@ -48,6 +49,7 @@ const routes: Routes = [
       { path: 'stories', component: StoriesPageComponent, title: 'Stories · SNAY3I' },
       { path: 'boosts', component: BoostsPageComponent, title: 'Boosts · SNAY3I' },
       { path: 'verifications', component: VerificationsPageComponent, title: 'Vérifications · SNAY3I' },
+      { path: 'messages', component: MessagesPageComponent, title: 'Messages · SNAY3I' },
       { path: 'support', component: SupportPageComponent, title: 'Signalements · SNAY3I' },
       { path: 'categories', component: CategoriesPageComponent, title: 'Métiers · SNAY3I' },
       { path: 'settings', component: SettingsComponent, title: 'Paramètres · SNAY3I' },

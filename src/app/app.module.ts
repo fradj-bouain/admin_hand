@@ -36,6 +36,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatPaginatorIntl } from '@angular/material/paginator';
+import { TextFieldModule } from '@angular/cdk/text-field';
 
 // Briques partagées de la console
 import { ChipComponent } from './shared/chip.component';
@@ -62,6 +63,8 @@ import { StoriesPageComponent } from './features/stories/stories-page.component'
 import { BoostsPageComponent } from './features/boosts/boosts-page.component';
 import { VerificationsPageComponent } from './features/verifications/verifications-page.component';
 import { SupportPageComponent } from './features/support/support-page.component';
+import { MessagesPageComponent } from './features/messages/messages-page.component';
+import { NewChatDialogComponent } from './features/messages/new-chat-dialog.component';
 import { CategoriesPageComponent } from './features/categories/categories-page.component';
 import { LayoutComponent } from './core/layout/layout.component';
 import { SettingsComponent } from './features/settings/settings.component';
@@ -86,6 +89,8 @@ import { AuthExpiredInterceptor } from './core/services/auth-expired.interceptor
     BoostsPageComponent,
     VerificationsPageComponent,
     SupportPageComponent,
+    MessagesPageComponent,
+    NewChatDialogComponent,
     CategoriesPageComponent,
     LayoutComponent,
     SettingsComponent,
@@ -131,6 +136,7 @@ import { AuthExpiredInterceptor } from './core/services/auth-expired.interceptor
     MatSlideToggleModule,
     MatDividerModule,
     MatProgressBarModule,
+    TextFieldModule,
   ],
   providers: [
     { provide: LOCALE_ID, useValue: 'fr' },
