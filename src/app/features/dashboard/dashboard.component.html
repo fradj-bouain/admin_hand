@@ -42,6 +42,9 @@
                [clickable]="true" (click)="go('/boosts')"></app-kpi>
       <app-kpi icon="verified" label="Revenus vérifications" [value]="money(k.revenueVerifications)" [hint]="num(k.storiesActive) + ' stories en ligne'" tone="info"
                [clickable]="true" (click)="go('/verifications', { status: 'APPROVED' })"></app-kpi>
+      <app-kpi icon="workspace_premium" label="Abonnés Premium" [value]="num(k.premiumActive)"
+               [hint]="num(k.premiumTrials) + ' en essai · +' + num(k.premiumNew30) + ' sur 30 jours'" tone="violet"
+               [clickable]="true" (click)="go('/premium', { active: 'true' })"></app-kpi>
     </section>
 
     <!-- Tendances -->

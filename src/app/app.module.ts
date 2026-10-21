@@ -65,6 +65,7 @@ import { VerificationsPageComponent } from './features/verifications/verificatio
 import { SupportPageComponent } from './features/support/support-page.component';
 import { MessagesPageComponent } from './features/messages/messages-page.component';
 import { NewChatDialogComponent } from './features/messages/new-chat-dialog.component';
+import { PremiumPageComponent } from './features/premium/premium-page.component';
 import { CategoriesPageComponent } from './features/categories/categories-page.component';
 import { LayoutComponent } from './core/layout/layout.component';
 import { SettingsComponent } from './features/settings/settings.component';
@@ -91,6 +92,7 @@ import { AuthExpiredInterceptor } from './core/services/auth-expired.interceptor
     SupportPageComponent,
     MessagesPageComponent,
     NewChatDialogComponent,
+    PremiumPageComponent,
     CategoriesPageComponent,
     LayoutComponent,
     SettingsComponent,

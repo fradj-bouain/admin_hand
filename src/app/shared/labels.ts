@@ -65,6 +65,24 @@ export const VERIFICATION_STATUS: Option[] = [
   { value: 'REJECTED', label: 'Refusée', tone: 'danger' },
 ];
 
+/** Abonnement SNAY3I Premium : états Google Play. */
+export const PREMIUM_STATUS: Option[] = [
+  { value: 'ACTIVE', label: 'Actif', tone: 'success' },
+  { value: 'CANCELED', label: 'Renouvellement arrêté', tone: 'warning' },
+  { value: 'IN_GRACE_PERIOD', label: 'Délai de paiement', tone: 'warning' },
+  { value: 'ON_HOLD', label: 'Suspendu (paiement refusé)', tone: 'danger' },
+  { value: 'PAUSED', label: 'En pause', tone: 'neutral' },
+  { value: 'PENDING', label: 'Paiement en attente', tone: 'info' },
+  { value: 'EXPIRED', label: 'Expiré', tone: 'neutral' },
+  { value: 'PENDING_PURCHASE_CANCELED', label: 'Achat abandonné', tone: 'neutral' },
+  { value: 'UNKNOWN', label: 'Inconnu', tone: 'neutral' },
+];
+
+export const PREMIUM_PLAN: Option[] = [
+  { value: 'monthly', label: 'Mensuel', tone: 'info' },
+  { value: 'yearly', label: 'Annuel', tone: 'violet' },
+];
+
 /** État du badge sur le profil de l'artisan (employees.verification_status). */
 export const BADGE_STATUS: Option[] = [
   { value: 'NONE', label: 'Aucune demande', tone: 'neutral' },

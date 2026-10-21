@@ -116,9 +116,9 @@
   }
 }
 
-// 8 indicateurs : 2 lignes de 4
+// 9 indicateurs : 3 lignes de 3
 .dash .kpi-row {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 // ===== Panneaux =====

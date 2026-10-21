@@ -46,6 +46,7 @@ export class ClientsPageComponent extends ConsolePage {
     { key: 'reservations', label: 'Réservations', type: 'number', align: 'end', filter: { type: 'number' } },
     { key: 'reviews', label: 'Avis donnés', type: 'number', align: 'end', filter: { type: 'number' }, hidden: true },
     { key: 'active', label: 'Compte', type: 'boolean', trueLabel: 'Actif', falseLabel: 'Désactivé', filter: { type: 'boolean' } },
+    { key: 'premium', label: 'Premium', type: 'boolean', trueLabel: 'Premium', falseLabel: 'Non', sortKey: false, filter: { type: 'boolean' } },
     { key: 'createdAt', label: 'Inscription', type: 'datetime', filter: { type: 'date' } },
     { key: 'lastSeen', label: 'Dernière visite', type: 'datetime', filter: { type: 'date' } },
   ];

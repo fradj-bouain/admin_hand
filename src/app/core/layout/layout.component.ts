@@ -59,6 +59,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       items: [
         { path: '/boosts', label: 'Boosts', icon: 'bolt', badge: 'boosts', tone: 'warning' },
         { path: '/verifications', label: 'Vérifications', icon: 'verified', badge: 'verifications', tone: 'info' },
+        { path: '/premium', label: 'Premium', icon: 'workspace_premium' },
       ],
     },
     {
