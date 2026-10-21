@@ -46,8 +46,8 @@ export class ArtisansPageComponent extends ConsolePage {
   ];
 
   readonly columns: ColumnDef[] = [
-    { key: 'name', label: 'Artisan', type: 'person', subKey: 'phone', filter: { type: 'text' }, width: '220px' },
-    { key: 'phone', label: 'Téléphone', type: 'phone', filter: { type: 'text' }, hidden: true },
+    { key: 'name', label: 'Artisan', type: 'person', subKey: 'email', filter: { type: 'text' }, width: '220px' },
+    { key: 'phone', label: 'Téléphone', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'professions', label: 'Métiers', type: 'chips', sortKey: 'profession', filter: { type: 'text', param: 'profession' } },
     { key: 'governorate', label: 'Gouvernorat', filter: { type: 'select', options: GOVERNORATE_OPTIONS } },
     { key: 'city', label: 'Ville', filter: { type: 'text' }, hidden: true },

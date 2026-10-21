@@ -19,7 +19,7 @@ import { UiService } from '../../shared/ui.service';
 
       <app-data-table [endpoint]="endpoint" [columns]="columns" [actions]="actions" exportName="avis"
                       [defaultSort]="{ key: 'createdAt', dir: 'desc' }" emptyIcon="rate_review"
-                      searchPlaceholder="Commentaire, artisan, client…" (rowClick)="open($event)"></app-data-table>
+                      searchPlaceholder="Commentaire, artisan, client, téléphone…" (rowClick)="open($event)"></app-data-table>
     </div>
   `,
 })
@@ -36,7 +36,9 @@ export class ReviewsPageComponent extends ConsolePage {
   readonly columns: ColumnDef[] = [
     { key: 'createdAt', label: 'Date', type: 'datetime', filter: { type: 'date' } },
     { key: 'artisanName', label: 'Artisan', type: 'person', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' }, width: '190px' },
+    { key: 'artisanPhone', label: 'Tél. artisan', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'clientName', label: 'Client', sortKey: 'client', filter: { type: 'text', param: 'client' } },
+    { key: 'clientPhone', label: 'Tél. client', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'rating', label: 'Note', type: 'stars', filter: { type: 'number' } },
     { key: 'comment', label: 'Commentaire', type: 'longtext', sortKey: false, filter: { type: 'text' } },
     { key: 'source', label: 'Lié à', type: 'status', options: REVIEW_SOURCE, sortKey: false, filter: { type: 'select' } },

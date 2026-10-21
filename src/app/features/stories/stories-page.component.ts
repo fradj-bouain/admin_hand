@@ -20,7 +20,7 @@ import { UiService } from '../../shared/ui.service';
 
       <app-data-table [endpoint]="endpoint" [columns]="columns" [actions]="actions" exportName="stories"
                       [defaultSort]="{ key: 'createdAt', dir: 'desc' }" emptyIcon="smart_display"
-                      searchPlaceholder="Titre ou artisan…" (rowClick)="watch($event)"></app-data-table>
+                      searchPlaceholder="Titre, artisan ou téléphone…" (rowClick)="watch($event)"></app-data-table>
     </div>
   `,
 })
@@ -36,7 +36,8 @@ export class StoriesPageComponent extends ConsolePage {
 
   readonly columns: ColumnDef[] = [
     { key: 'thumbnailUrl', label: 'Aperçu', type: 'image', sortKey: false },
-    { key: 'artisanName', label: 'Artisan', type: 'person', subKey: 'artisanPhone', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' }, width: '200px' },
+    { key: 'artisanName', label: 'Artisan', type: 'person', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' }, width: '190px' },
+    { key: 'artisanPhone', label: 'Tél. artisan', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'title', label: 'Titre', filter: { type: 'text' } },
     { key: 'state', label: 'État', type: 'status', options: STORY_STATE, sortKey: false, filter: { type: 'select' } },
     { key: 'views', label: 'Vues', type: 'number', align: 'end', filter: { type: 'number' } },

@@ -19,7 +19,7 @@ import { UiService } from '../../shared/ui.service';
 
       <app-data-table [endpoint]="endpoint" [columns]="columns" [actions]="actions" exportName="reservations"
                       [defaultSort]="{ key: 'createdAt', dir: 'desc' }" emptyIcon="event_busy"
-                      searchPlaceholder="Service, client, artisan, ville…" (rowClick)="open($event)"></app-data-table>
+                      searchPlaceholder="Service, client, artisan, téléphone, ville…" (rowClick)="open($event)"></app-data-table>
     </div>
   `,
 })
@@ -36,8 +36,10 @@ export class ReservationsPageComponent extends ConsolePage {
 
   readonly columns: ColumnDef[] = [
     { key: 'createdAt', label: 'Créée', type: 'datetime', filter: { type: 'date' } },
-    { key: 'clientName', label: 'Client', type: 'person', subKey: 'clientPhone', sortKey: 'client', filter: { type: 'text', param: 'client' }, width: '200px' },
+    { key: 'clientName', label: 'Client', type: 'person', sortKey: 'client', filter: { type: 'text', param: 'client' }, width: '190px' },
+    { key: 'clientPhone', label: 'Tél. client', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'artisanName', label: 'Artisan', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' } },
+    { key: 'artisanPhone', label: 'Tél. artisan', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'service', label: 'Service', filter: { type: 'text' } },
     { key: 'reservationDate', label: 'Rendez-vous', type: 'datetime', filter: { type: 'date' } },
     { key: 'governorate', label: 'Gouvernorat', filter: { type: 'select', options: GOVERNORATE_OPTIONS } },

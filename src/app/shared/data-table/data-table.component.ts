@@ -458,6 +458,11 @@ export class DataTableComponent implements OnInit, OnChanges, OnDestroy {
     return 'dt:' + this.endpoint;
   }
 
+  /** Colonnes masquées par l'utilisateur ; « v2 » : colonnes téléphone ajoutées, choix précédents oubliés. */
+  private colsKey(): string {
+    return this.storageKey() + ':cols:v2';
+  }
+
   private save(): void {
     try {
       const state: SavedState = {
@@ -465,7 +470,7 @@ export class DataTableComponent implements OnInit, OnChanges, OnDestroy {
         hidden: [...this.hidden],
       };
       sessionStorage.setItem(this.storageKey(), JSON.stringify(state));
-      localStorage.setItem(this.storageKey() + ':cols', JSON.stringify([...this.hidden]));
+      localStorage.setItem(this.colsKey(), JSON.stringify([...this.hidden]));
     } catch {
       /* stockage indisponible : on garde l'état en mémoire */
     }
@@ -474,7 +479,7 @@ export class DataTableComponent implements OnInit, OnChanges, OnDestroy {
   private restore(): void {
     this.hidden = new Set(this.columns.filter(c => c.hidden).map(c => c.key));
     try {
-      const cols = localStorage.getItem(this.storageKey() + ':cols');
+      const cols = localStorage.getItem(this.colsKey());
       if (cols) {
         this.hidden = new Set((JSON.parse(cols) as string[]).filter(k => this.columns.some(c => c.key === k)));
       }

@@ -37,7 +37,7 @@ export class ClientsPageComponent extends ConsolePage {
 
   readonly columns: ColumnDef[] = [
     { key: 'name', label: 'Client', type: 'person', subKey: 'email', filter: { type: 'text' }, width: '220px' },
-    { key: 'phone', label: 'Téléphone', type: 'phone', filter: { type: 'text' } },
+    { key: 'phone', label: 'Téléphone', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'email', label: 'Email', filter: { type: 'text' }, hidden: true },
     { key: 'governorate', label: 'Gouvernorat', filter: { type: 'select', options: GOVERNORATE_OPTIONS } },
     { key: 'city', label: 'Ville', filter: { type: 'text' } },

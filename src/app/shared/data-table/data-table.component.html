@@ -71,7 +71,8 @@
             <ng-container *ngIf="c.filter as f">
               <ng-container [ngSwitch]="f.type">
                 <input *ngSwitchCase="'text'" class="f-input" type="search" [ngModel]="filters[param(c)] || ''"
-                       (ngModelChange)="setFilter(param(c), $event, true)" [placeholder]="f.placeholder || 'Filtrer…'" />
+                       (ngModelChange)="setFilter(param(c), $event, true)" [attr.inputmode]="c.type === 'phone' ? 'tel' : null"
+                       [placeholder]="f.placeholder || (c.type === 'phone' ? 'Ex. 50 123 456' : 'Filtrer…')" />
 
                 <select *ngSwitchCase="'select'" class="f-input" [class.active]="filters[param(c)]"
                         [ngModel]="filters[param(c)] || ''" (ngModelChange)="setFilter(param(c), $event)">

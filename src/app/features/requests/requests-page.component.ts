@@ -19,7 +19,7 @@ import { UiService } from '../../shared/ui.service';
 
       <app-data-table [endpoint]="endpoint" [columns]="columns" [actions]="actions" exportName="demandes"
                       [defaultSort]="{ key: 'createdAt', dir: 'desc' }" emptyIcon="assignment"
-                      searchPlaceholder="Description, métier, client, artisan, ville…" (rowClick)="open($event)"></app-data-table>
+                      searchPlaceholder="Description, métier, client, artisan, téléphone, ville…" (rowClick)="open($event)"></app-data-table>
     </div>
   `,
 })
@@ -38,7 +38,8 @@ export class RequestsPageComponent extends ConsolePage {
 
   readonly columns: ColumnDef[] = [
     { key: 'createdAt', label: 'Publiée', type: 'datetime', filter: { type: 'date' } },
-    { key: 'clientName', label: 'Client', type: 'person', subKey: 'clientPhone', sortKey: 'client', filter: { type: 'text', param: 'client' }, width: '200px' },
+    { key: 'clientName', label: 'Client', type: 'person', sortKey: 'client', filter: { type: 'text', param: 'client' }, width: '190px' },
+    { key: 'clientPhone', label: 'Tél. client', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'profession', label: 'Métier', filter: { type: 'text' } },
     { key: 'description', label: 'Description', type: 'longtext', sortKey: false, filter: { type: 'text' }, hidden: true },
     { key: 'governorate', label: 'Gouvernorat', filter: { type: 'select', options: GOVERNORATE_OPTIONS } },
@@ -46,7 +47,8 @@ export class RequestsPageComponent extends ConsolePage {
     { key: 'urgency', label: 'Urgence', type: 'status', options: URGENCY, filter: { type: 'multiselect' } },
     { key: 'status', label: 'Statut', type: 'status', options: REQUEST_STATUS, filter: { type: 'multiselect' } },
     { key: 'applicants', label: 'Candidats', type: 'number', align: 'end', filter: { type: 'number' } },
-    { key: 'artisanName', label: 'Artisan', sortKey: 'artisan', subKey: 'artisanPhone', filter: { type: 'text', param: 'artisan' } },
+    { key: 'artisanName', label: 'Artisan', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' } },
+    { key: 'artisanPhone', label: 'Tél. artisan', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'estimatedPrice', label: 'Prix estimé', type: 'money', align: 'end', filter: { type: 'number' }, hidden: true },
     { key: 'finalPrice', label: 'Prix final', type: 'money', align: 'end', filter: { type: 'number' } },
     { key: 'clientRating', label: 'Note client', type: 'stars', filter: { type: 'number' } },

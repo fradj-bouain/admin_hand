@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { ColumnDef, Option } from './models';
 import { labelOf } from './labels';
-import { cellText, fileUrl, formatDate, formatDateTime, formatMoney, formatNumber, initials, rawValue, relative } from './format';
+import { cellText, fileUrl, formatDate, formatDateTime, formatMoney, formatNumber, formatPhone, initials, rawValue, relative } from './format';
 
 /** Une cellule de tableau, rendue selon le type de sa colonne. */
 @Component({
@@ -56,7 +56,7 @@ import { cellText, fileUrl, formatDate, formatDateTime, formatMoney, formatNumbe
       <span *ngSwitchCase="'number'" class="num">
         <ng-container *ngIf="value !== null && value !== undefined; else dash">{{ number(value, 2) }}{{ column.suffix ? ' ' + column.suffix : '' }}</ng-container>
       </span>
-      <span *ngSwitchCase="'phone'" class="nowrap"><ng-container *ngIf="value; else dash">{{ value }}</ng-container></span>
+      <span *ngSwitchCase="'phone'" class="nowrap num"><ng-container *ngIf="value; else dash">{{ phone(value) }}</ng-container></span>
       <span *ngSwitchDefault>
         {{ text || '—' }}
         <span class="secondary block" *ngIf="sub">{{ sub }}</span>
@@ -97,6 +97,7 @@ export class CellComponent implements OnChanges {
   date = formatDate;
   money = formatMoney;
   relativeOf = relative;
+  phone = formatPhone;
   url = fileUrl;
 
   number(v: any, digits: number): string {

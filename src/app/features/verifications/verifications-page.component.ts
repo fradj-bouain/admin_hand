@@ -36,7 +36,8 @@ export class VerificationsPageComponent extends ConsolePage {
 
   readonly columns: ColumnDef[] = [
     { key: 'requestedAt', label: 'Demandée', type: 'datetime', filter: { type: 'date' } },
-    { key: 'artisanName', label: 'Artisan', type: 'person', subKey: 'artisanPhone', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' }, width: '200px' },
+    { key: 'artisanName', label: 'Artisan', type: 'person', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' }, width: '190px' },
+    { key: 'artisanPhone', label: 'Tél. artisan', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'amount', label: 'Montant', type: 'money', align: 'end', filter: { type: 'number' } },
     { key: 'paymentMethod', label: 'Paiement', type: 'status', options: PAYMENT_METHOD, filter: { type: 'multiselect' } },
     { key: 'reference', label: 'Référence', filter: { type: 'text' } },

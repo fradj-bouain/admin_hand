@@ -107,6 +107,29 @@ export function rawValue(column: ColumnDef, row: any): any {
   return column.value ? column.value(row) : row?.[column.key];
 }
 
+/**
+ * Numéro lisible : « +21650123456 » → « +216 50 123 456 », « 50123456 » → « 50 123 456 ».
+ * Tout autre format est affiché tel qu'enregistré.
+ */
+export function formatPhone(v: any): string {
+  if (v === null || v === undefined || v === '') {
+    return '';
+  }
+  const raw = String(v).trim();
+  const d = raw.replace(/\D/g, '');
+  const group = (n: string) => `${n.slice(0, 2)} ${n.slice(2, 5)} ${n.slice(5)}`;
+  if (d.length === 11 && d.startsWith('216')) {
+    return `+216 ${group(d.slice(3))}`;
+  }
+  if (d.length === 13 && d.startsWith('00216')) {
+    return `+216 ${group(d.slice(5))}`;
+  }
+  if (d.length === 8 && /^[\d\s.\-]+$/.test(raw)) {
+    return group(d);
+  }
+  return raw;
+}
+
 /** Texte simple d'une cellule (export CSV, info-bulles). */
 export function cellText(column: ColumnDef, row: any): string {
   const v = rawValue(column, row);
@@ -133,6 +156,8 @@ export function cellText(column: ColumnDef, row: any): string {
     }
     case 'number':
       return formatNumber(v, 2) + (column.suffix && v !== null && v !== undefined ? ` ${column.suffix}` : '');
+    case 'phone':
+      return formatPhone(v);
     default:
       return v === null || v === undefined ? '' : String(v);
   }

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParameterCodec, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -9,6 +9,27 @@ export interface ApiResponse<T> {
   data?: T;
   statusCode?: number;
 }
+
+/**
+ * Encode chaque caractère spécial des paramètres d'URL. Le codec par défaut d'Angular laisse « + » tel
+ * quel, que le serveur lit comme un espace : « +216 50… » devenait « 216 50… » et ne trouvait rien.
+ */
+class StrictParamCodec implements HttpParameterCodec {
+  encodeKey(key: string): string {
+    return encodeURIComponent(key);
+  }
+  encodeValue(value: string): string {
+    return encodeURIComponent(value);
+  }
+  decodeKey(key: string): string {
+    return decodeURIComponent(key);
+  }
+  decodeValue(value: string): string {
+    return decodeURIComponent(value);
+  }
+}
+
+const PARAM_CODEC = new StrictParamCodec();
 
 @Injectable({
   providedIn: 'root'
@@ -37,7 +58,7 @@ export class ApiService {
   }
 
   get<T>(endpoint: string, params?: any): Observable<ApiResponse<T>> {
-    let httpParams = new HttpParams();
+    let httpParams = new HttpParams({ encoder: PARAM_CODEC });
     if (params) {
       Object.keys(params).forEach(key => {
         if (params[key] !== undefined && params[key] !== null) {
@@ -59,7 +80,7 @@ export class ApiService {
   }
 
   put<T>(endpoint: string, data?: any, queryParams?: any): Observable<ApiResponse<T>> {
-    let httpParams = new HttpParams();
+    let httpParams = new HttpParams({ encoder: PARAM_CODEC });
     if (queryParams) {
       Object.keys(queryParams).forEach(key => {
         if (queryParams[key] !== undefined && queryParams[key] !== null) {
@@ -81,7 +102,7 @@ export class ApiService {
   }
 
   patch<T>(endpoint: string, data?: any, queryParams?: any): Observable<ApiResponse<T>> {
-    let httpParams = new HttpParams();
+    let httpParams = new HttpParams({ encoder: PARAM_CODEC });
     if (queryParams) {
       Object.keys(queryParams).forEach(key => {
         if (queryParams[key] !== undefined && queryParams[key] !== null) {
