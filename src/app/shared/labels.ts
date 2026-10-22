@@ -85,6 +85,21 @@ export const ADS_STATE: Option[] = [
   { value: 'premium', label: 'Premium', tone: 'violet' },
 ];
 
+/** Qui a annulé une demande. */
+export const CANCELLED_BY: Option[] = [
+  { value: 'CLIENT', label: 'Le client', tone: 'warning' },
+  { value: 'ADMIN', label: "L'équipe", tone: 'neutral' },
+];
+
+/** Motif d'annulation choisi par le client (facultatif). */
+export const CANCEL_REASON: Option[] = [
+  { value: 'FOUND_ELSEWHERE', label: "A trouvé quelqu'un d'autre", tone: 'info' },
+  { value: 'NO_LONGER_NEEDED', label: "N'en a plus besoin", tone: 'neutral' },
+  { value: 'MISTAKE', label: 'Erreur dans la demande', tone: 'neutral' },
+  { value: 'TOO_SLOW', label: 'Trop long à attendre', tone: 'warning' },
+  { value: 'OTHER', label: 'Autre', tone: 'neutral' },
+];
+
 export const PREMIUM_PLAN: Option[] = [
   { value: 'monthly', label: 'Mensuel', tone: 'info' },
   { value: 'yearly', label: 'Annuel', tone: 'violet' },

@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { ConsolePage, ConsoleService, PageKpi } from '../../shared/console';
 import { ColumnDef, DetailData, FormField, Option, RowAction } from '../../shared/models';
-import { APPLICANT_STATUS, GOVERNORATE_OPTIONS, REQUEST_STATUS, URGENCY, labelOf } from '../../shared/labels';
+import { APPLICANT_STATUS, CANCEL_REASON, CANCELLED_BY, GOVERNORATE_OPTIONS, REQUEST_STATUS, URGENCY, labelOf } from '../../shared/labels';
 import { UiService } from '../../shared/ui.service';
 
 @Component({
@@ -33,6 +33,7 @@ export class RequestsPageComponent extends ConsolePage {
     { key: 'progress', label: 'En cours', icon: 'construction', tone: 'warning', filter: { status: 'EMPLOYEE_SELECTED,PRICE_PROPOSED,ACCEPTED,IN_PROGRESS,AWAITING_REVIEW' } },
     { key: 'done', label: 'Terminées', icon: 'task_alt', tone: 'success', filter: { status: 'COMPLETED' } },
     { key: 'cancelled', label: 'Annulées', icon: 'cancel', tone: 'danger', filter: { status: 'CANCELLED' } },
+    { key: 'cancelledByClient', label: 'Annulées par le client', icon: 'person_remove', tone: 'warning', filter: { status: 'CANCELLED', cancelledBy: 'CLIENT' } },
     { key: 'unassigned', label: 'Sans artisan', icon: 'person_search', tone: 'violet', filter: { assigned: 'false' } },
   ];
 
@@ -55,6 +56,8 @@ export class RequestsPageComponent extends ConsolePage {
     { key: 'acceptedAt', label: 'Acceptée', type: 'datetime', filter: { type: 'date' }, hidden: true },
     { key: 'completedAt', label: 'Terminée', type: 'datetime', filter: { type: 'date' } },
     { key: 'cancelledAt', label: 'Annulée', type: 'datetime', filter: { type: 'date' }, hidden: true },
+    { key: 'cancelledBy', label: 'Annulée par', type: 'status', options: CANCELLED_BY, filter: { type: 'select' }, hidden: true },
+    { key: 'cancellationReason', label: "Motif d'annulation", type: 'status', options: CANCEL_REASON, filter: { type: 'select' }, hidden: true },
   ];
 
   readonly actions: RowAction[] = [
@@ -179,6 +182,11 @@ export class RequestsPageComponent extends ConsolePage {
             { label: 'Terminée', value: d.completedAt, type: 'datetime' },
             { label: 'Confirmée par le client', value: d.clientConfirmedAt, type: 'datetime' },
             { label: 'Annulée', value: d.cancelledAt, type: 'datetime' },
+            ...(d.status === 'CANCELLED' ? [
+              { label: 'Annulée par', value: d.cancelledBy, type: 'status' as const, options: CANCELLED_BY },
+              { label: "Motif d'annulation", value: d.cancellationReason, type: 'status' as const, options: CANCEL_REASON },
+              { label: "Commentaire d'annulation", value: d.cancellationComment, type: 'longtext' as const, full: true },
+            ] : []),
           ],
         },
       ],
