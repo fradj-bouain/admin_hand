@@ -16,6 +16,7 @@ import { VerificationsPageComponent } from './features/verifications/verificatio
 import { SupportPageComponent } from './features/support/support-page.component';
 import { MessagesPageComponent } from './features/messages/messages-page.component';
 import { PremiumPageComponent } from './features/premium/premium-page.component';
+import { BannersPageComponent } from './features/banners/banners-page.component';
 import { CategoriesPageComponent } from './features/categories/categories-page.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { PrivacyPolicyComponent } from './features/public/privacy-policy/privacy-policy.component';
@@ -51,6 +52,7 @@ const routes: Routes = [
       { path: 'boosts', component: BoostsPageComponent, title: 'Boosts · SNAY3I' },
       { path: 'verifications', component: VerificationsPageComponent, title: 'Vérifications · SNAY3I' },
       { path: 'premium', component: PremiumPageComponent, title: 'Premium · SNAY3I' },
+      { path: 'banners', component: BannersPageComponent, title: 'Bannières · SNAY3I' },
       { path: 'messages', component: MessagesPageComponent, title: 'Messages · SNAY3I' },
       { path: 'support', component: SupportPageComponent, title: 'Signalements · SNAY3I' },
       { path: 'categories', component: CategoriesPageComponent, title: 'Métiers · SNAY3I' },

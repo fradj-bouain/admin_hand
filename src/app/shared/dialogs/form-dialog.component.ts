@@ -57,6 +57,31 @@ export class FormDialogComponent implements OnInit {
       }
       this.form.addControl(f.key, new FormControl(this.initial(f), validators));
     }
+    if (this.data.fields.some(f => f.visibleIf)) {
+      this.syncVisibility();
+      this.form.valueChanges.subscribe(() => this.syncVisibility());
+    }
+  }
+
+  /** Champs conditionnels : un champ masqué est désactivé (ni vérifié, ni envoyé). */
+  private syncVisibility(): void {
+    const values = this.form.getRawValue();
+    for (const f of this.data.fields) {
+      if (!f.visibleIf) {
+        continue;
+      }
+      const c = this.control(f.key);
+      const show = f.visibleIf(values);
+      if (show && c.disabled) {
+        c.enable({ emitEvent: false });
+      } else if (!show && c.enabled) {
+        c.disable({ emitEvent: false });
+      }
+    }
+  }
+
+  shown(f: FormField): boolean {
+    return !f.visibleIf || this.control(f.key).enabled;
   }
 
   private initial(f: FormField): any {
@@ -133,6 +158,10 @@ export class FormDialogComponent implements OnInit {
     }
     const value: Record<string, any> = {};
     for (const f of this.data.fields) {
+      if (this.control(f.key).disabled) {
+        value[f.key] = null;
+        continue;
+      }
       let v = this.control(f.key).value;
       if (f.type === 'number') {
         v = v === '' || v === null || v === undefined ? null : Number(v);

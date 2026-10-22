@@ -48,7 +48,7 @@ import { cellText, fileUrl, formatDate, formatDateTime, formatMoney, formatNumbe
       </span>
       <span *ngSwitchCase="'longtext'" class="cell-long" [matTooltip]="value || ''">{{ value || '—' }}</span>
       <span *ngSwitchCase="'image'">
-        <img *ngIf="url(value) as u; else dash" class="cell-thumb" [src]="u" alt="" loading="lazy" />
+        <img *ngIf="url(value) as u; else dash" class="cell-thumb" [class.wide]="column.wide" [src]="u" alt="" loading="lazy" />
       </span>
       <span *ngSwitchCase="'color'" class="cell-color">
         <i [style.background]="value || 'transparent'"></i>{{ value || '—' }}

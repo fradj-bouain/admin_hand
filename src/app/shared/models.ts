@@ -61,6 +61,8 @@ export interface ColumnDef {
   hidden?: boolean;
   /** Suffixe / unité (ex. « j »). */
   suffix?: string;
+  /** Colonne « image » : vignette large (bannière) au lieu d'un carré. */
+  wide?: boolean;
 }
 
 export interface RowAction {
@@ -111,6 +113,10 @@ export interface FormField {
   full?: boolean;
   pattern?: string;
   patternMessage?: string;
+  /** Champ « image » : aperçu large (bannière) au lieu d'un carré. */
+  wide?: boolean;
+  /** Champ affiché seulement si la condition est vraie (valeurs du formulaire) ; masqué = non vérifié et envoyé vide. */
+  visibleIf?: (value: Record<string, any>) => boolean;
 }
 
 // ===== Fiche détail =====

@@ -13,7 +13,7 @@
 
     <div class="form-grid">
       <ng-container *ngFor="let f of data.fields">
-        <div class="field" [attr.data-field]="f.key" [class.full]="f.full || f.type === 'textarea' || f.type === 'image'" [class.invalid]="errorOf(f)">
+        <div *ngIf="shown(f)" class="field" [attr.data-field]="f.key" [class.full]="f.full || f.type === 'textarea' || f.type === 'image'" [class.invalid]="errorOf(f)">
           <ng-container [ngSwitch]="f.type">
             <label *ngSwitchCase="'toggle'" class="toggle-field">
               <mat-slide-toggle [formControlName]="f.key" color="primary">{{ f.label }}</mat-slide-toggle>
@@ -42,7 +42,7 @@
                 </div>
 
                 <div *ngSwitchCase="'image'" class="image-field">
-                  <div class="image-preview">
+                  <div class="image-preview" [class.wide]="f.wide">
                     <img *ngIf="preview(f.key) as src" [src]="src" alt="" />
                     <mat-icon *ngIf="!preview(f.key)">image</mat-icon>
                   </div>

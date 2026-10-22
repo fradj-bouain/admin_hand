@@ -100,6 +100,34 @@ export const CANCEL_REASON: Option[] = [
   { value: 'OTHER', label: 'Autre', tone: 'neutral' },
 ];
 
+/** Bannière maison : diffusion en cours, à venir, finie ou coupée. */
+export const BANNER_STATE: Option[] = [
+  { value: 'live', label: 'En ligne', tone: 'success' },
+  { value: 'scheduled', label: 'Programmée', tone: 'info' },
+  { value: 'ended', label: 'Terminée', tone: 'neutral' },
+  { value: 'off', label: 'Désactivée', tone: 'danger' },
+];
+
+/** À qui montrer une bannière (visiteurs = personnes sans compte, accueil client). */
+export const BANNER_AUDIENCE: Option[] = [
+  { value: 'CLIENTS', label: 'Clients', tone: 'primary' },
+  { value: 'ARTISANS', label: 'Artisans', tone: 'violet' },
+  { value: 'VISITORS', label: 'Visiteurs (sans compte)', tone: 'neutral' },
+];
+
+/** Ce qu'ouvre un appui sur la bannière. */
+export const BANNER_ACTION: Option[] = [
+  { value: 'NONE', label: 'Rien (image seule)', tone: 'neutral' },
+  { value: 'URL', label: 'Lien web', tone: 'info' },
+  { value: 'WHATSAPP', label: 'WhatsApp', tone: 'success' },
+  { value: 'PREMIUM', label: 'Écran Premium (clients)', tone: 'violet' },
+  { value: 'CREATE_REQUEST', label: 'Créer une demande (clients)', tone: 'primary' },
+  { value: 'CATEGORY', label: "Artisans d'un métier (clients)", tone: 'primary' },
+  { value: 'ARTISAN', label: "Fiche d'un artisan (clients)", tone: 'primary' },
+  { value: 'BOOST', label: 'Écran Boost (artisans)', tone: 'warning' },
+  { value: 'VERIFICATION', label: 'Badge vérifié (artisans)', tone: 'warning' },
+];
+
 export const PREMIUM_PLAN: Option[] = [
   { value: 'monthly', label: 'Mensuel', tone: 'info' },
   { value: 'yearly', label: 'Annuel', tone: 'violet' },
