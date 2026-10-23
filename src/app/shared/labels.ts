@@ -187,6 +187,13 @@ export const APPLICANT_STATUS: Option[] = [
   { value: 'WITHDRAWN', label: 'Retiré', tone: 'neutral' },
 ];
 
+/** D'où vient une note de client : confirmation d'une demande ou d'une réservation, ou avis écrit. */
+export const RATING_SOURCE: Option[] = [
+  { value: 'REQUEST', label: 'Demande terminée', tone: 'primary' },
+  { value: 'RESERVATION', label: 'Réservation', tone: 'info' },
+  { value: 'REVIEW', label: 'Avis écrit', tone: 'violet' },
+];
+
 export const REVIEW_SOURCE: Option[] = [
   { value: 'request', label: 'Demande', tone: 'primary' },
   { value: 'reservation', label: 'Réservation', tone: 'info' },

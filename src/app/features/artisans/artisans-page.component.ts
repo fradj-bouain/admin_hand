@@ -13,7 +13,7 @@ import { clean } from '../clients/clients-page.component';
   template: `
     <div class="page">
       <app-page-header icon="engineering" title="Artisans"
-                       subtitle="Profils, modération, réputation (note calculée = note réelle + bonus d'appel), Boosts et vérifications.">
+                       subtitle="Profils, modération, réputation (note affichée = avis des clients + bonus d'appel + bonus SNAY3I), Boosts et vérifications.">
         <button mat-flat-button color="primary" (click)="create()"><mat-icon>person_add</mat-icon>Nouvel artisan</button>
       </app-page-header>
 
@@ -26,6 +26,12 @@ import { clean } from '../clients/clients-page.component';
                       [defaultSort]="{ key: 'createdAt', dir: 'desc' }" emptyIcon="engineering"
                       searchPlaceholder="Nom, téléphone, métier, ville…" (rowClick)="open($event)"
                       (selectionChange)="selection = $event">
+        <button dtActions mat-stroked-button *ngIf="selection.length" (click)="setSnay3iBonus(selection)">
+          <mat-icon>workspace_premium</mat-icon>Bonus SNAY3I ({{ selection.length }})
+        </button>
+        <button dtActions mat-stroked-button *ngIf="selection.length" (click)="recalculate(selection)">
+          <mat-icon>calculate</mat-icon>Recalculer la note ({{ selection.length }})
+        </button>
         <button dtActions mat-stroked-button *ngIf="selection.length" (click)="resetBonus(selection)">
           <mat-icon>restart_alt</mat-icon>Remettre le bonus d'appel à 0 ({{ selection.length }})
         </button>
@@ -55,10 +61,11 @@ export class ArtisansPageComponent extends ConsolePage {
     { key: 'city', label: 'Ville', filter: { type: 'text' }, hidden: true },
     { key: 'status', label: 'Statut', type: 'status', options: EMPLOYEE_STATUS, filter: { type: 'multiselect' } },
     { key: 'verified', label: 'Vérifié', type: 'boolean', trueLabel: 'Vérifié', falseLabel: 'Non vérifié', filter: { type: 'boolean' } },
-    { key: 'rating', label: 'Note calculée', type: 'rating', align: 'end', filter: { type: 'number' } },
+    { key: 'rating', label: 'Note affichée', type: 'rating', align: 'end', filter: { type: 'number' } },
     { key: 'realRating', label: 'Note réelle', type: 'rating', align: 'end', filter: { type: 'number' }, hidden: true },
     { key: 'reviewCount', label: 'Avis', type: 'number', align: 'end', filter: { type: 'number' } },
     { key: 'callBonus', label: "Bonus d'appel", type: 'number', align: 'end', filter: { type: 'number' } },
+    { key: 'adminBonus', label: 'Bonus SNAY3I', type: 'number', align: 'end', filter: { type: 'number' } },
     {
       key: 'boostActive', label: 'Boost', type: 'boolean', trueLabel: 'En cours', falseLabel: 'Aucun', sortKey: 'boostEndsAt',
       filter: { type: 'select', param: 'boost', options: [{ value: 'active', label: 'En cours' }, { value: 'none', label: 'Aucun' }] },
@@ -80,6 +87,8 @@ export class ArtisansPageComponent extends ConsolePage {
     { icon: 'verified', label: 'Marquer vérifié', tone: 'info', visible: r => !r.verified, handler: r => this.verify(r) },
     { icon: 'pause_circle', label: 'Suspendre', tone: 'danger', visible: r => r.status === 'ACTIVE' || r.status === 'PENDING_MODERATION', handler: r => this.setStatus(r, 'SUSPENDED') },
     { icon: 'play_circle', label: 'Réactiver', tone: 'success', visible: r => r.status === 'SUSPENDED' || r.status === 'INACTIVE', handler: r => this.setStatus(r, 'ACTIVE') },
+    { icon: 'workspace_premium', label: 'Bonus SNAY3I', handler: r => this.setSnay3iBonus([r]) },
+    { icon: 'calculate', label: 'Recalculer la note', handler: r => this.recalculate([r]) },
     { icon: 'restart_alt', label: "Bonus d'appel à 0", visible: r => Number(r.callBonus) > 0, handler: r => this.resetBonus([r]) },
     { icon: 'key', label: 'Nouveau mot de passe', handler: r => this.resetPassword(r) },
   ];
@@ -184,6 +193,41 @@ export class ArtisansPageComponent extends ConsolePage {
     });
   }
 
+  /** Bonus SNAY3I (0 à 3 étoiles) : ajouté aux étoiles affichées, expliqué sur le profil ; le nombre d'avis ne change pas. */
+  setSnay3iBonus(rows: any[]): void {
+    const one = rows.length === 1;
+    this.ui.form({
+      title: one ? `Bonus SNAY3I — ${rows[0].name}` : `Bonus SNAY3I pour ${rows.length} artisans`,
+      subtitle: "Ajouté aux étoiles (5 au maximum) et expliqué sur le profil : « Profil et portfolio de qualité ». Le nombre d'avis ne change pas.",
+      icon: 'workspace_premium',
+      fields: [{ key: 'bonus', label: 'Bonus (0 à 3 étoiles)', type: 'number', min: 0, max: 3, required: true, hint: '0 = retirer le bonus. Exemple : 0,5 ou 1,5' }],
+      value: { bonus: one ? Number(rows[0].adminBonus ?? 0) : 1 },
+      submitLabel: 'Enregistrer',
+      submit: v => this.api.post('/admin/v2/employees/snay3i-bonus', { employeeIds: rows.map(r => r.id), bonus: v.bonus }),
+    }).subscribe(r => {
+      if (r) {
+        this.ui.toast(one ? 'Bonus SNAY3I enregistré' : `Bonus SNAY3I enregistré pour ${rows.length} artisans`);
+        this.table?.clearSelection();
+        this.reload();
+      }
+    });
+  }
+
+  /** Note réelle et nombre d'avis repris depuis les notes visibles des clients (ce que l'app montre). */
+  recalculate(rows: any[]): void {
+    this.ui.confirm({
+      title: 'Recalculer la note ?', icon: 'calculate', tone: 'info', confirmLabel: 'Recalculer',
+      message: rows.length === 1
+        ? `La note et le nombre d'avis de ${rows[0].name} sont recalculés depuis les notes visibles de ses clients.`
+        : `${rows.length} artisans : note et nombre d'avis recalculés depuis les notes visibles de leurs clients.`,
+    }).subscribe(ok => {
+      if (ok) {
+        this.act(this.api.post('/admin/v2/employees/ratings/recalculate', { employeeIds: rows.map(r => r.id) }),
+          'Notes recalculées', () => this.table?.clearSelection());
+      }
+    });
+  }
+
   resetPassword(row: any): void {
     if (!row.userId) {
       return;
@@ -236,9 +280,10 @@ export class ArtisansPageComponent extends ConsolePage {
         {
           title: 'Réputation',
           items: [
-            { label: 'Note calculée (affichée aux clients)', value: e.rating, type: 'rating' },
-            { label: 'Note réelle (avis)', value: e.realRating, type: 'rating' },
+            { label: 'Note affichée aux clients', value: e.rating, type: 'rating' },
+            { label: 'Note des clients (avis)', value: e.realRating, type: 'rating' },
             { label: "Bonus d'appel", value: e.callBonus, type: 'number' },
+            { label: 'Bonus SNAY3I (profil et portfolio de qualité)', value: e.adminBonus, type: 'number' },
             { label: "Nombre d'avis", value: e.reviewCount, type: 'number' },
           ],
         },

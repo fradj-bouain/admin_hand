@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ConsolePage, ConsoleService, PageKpi } from '../../shared/console';
 import { ColumnDef, DetailData, RowAction } from '../../shared/models';
-import { REVIEW_SOURCE } from '../../shared/labels';
+import { RATING_SOURCE } from '../../shared/labels';
 import { UiService } from '../../shared/ui.service';
 
 @Component({
@@ -10,7 +11,7 @@ import { UiService } from '../../shared/ui.service';
   template: `
     <div class="page">
       <app-page-header icon="reviews" title="Avis"
-                       subtitle="Avis laissés par les clients. Masquer un avis le retire du profil public de l'artisan."></app-page-header>
+                       subtitle="Toutes les notes des clients (demandes, réservations, avis écrits). Masquer ou supprimer une note recalcule aussitôt la note et le nombre d'avis de l'artisan."></app-page-header>
 
       <div class="kpi-row">
         <app-kpi *ngFor="let k of kpis" [icon]="k.icon" [label]="k.label" [value]="counts[k.key] ?? '…'" [tone]="k.tone"
@@ -18,76 +19,95 @@ import { UiService } from '../../shared/ui.service';
       </div>
 
       <app-data-table [endpoint]="endpoint" [columns]="columns" [actions]="actions" exportName="avis"
-                      [defaultSort]="{ key: 'createdAt', dir: 'desc' }" emptyIcon="rate_review"
+                      [defaultSort]="{ key: 'ratedAt', dir: 'desc' }" emptyIcon="rate_review"
                       searchPlaceholder="Commentaire, artisan, client, téléphone…" (rowClick)="open($event)"></app-data-table>
     </div>
   `,
 })
 export class ReviewsPageComponent extends ConsolePage {
-  readonly endpoint = '/admin/v2/reviews';
+  readonly endpoint = '/admin/v2/ratings';
+  /** Suppression définitive : Super Admin seulement (vérifié aussi par le serveur). */
+  readonly isSuperAdmin: boolean;
 
   override readonly kpis: PageKpi[] = [
-    { key: 'all', label: 'Avis', icon: 'reviews', tone: 'primary', filter: {} },
+    { key: 'all', label: 'Notes', icon: 'reviews', tone: 'primary', filter: {} },
     { key: 'good', label: '4 et 5 étoiles', icon: 'sentiment_satisfied', tone: 'success', filter: { ratingMin: '4' } },
     { key: 'bad', label: '1 et 2 étoiles', icon: 'sentiment_dissatisfied', tone: 'danger', filter: { ratingMax: '2' } },
-    { key: 'hidden', label: 'Masqués', icon: 'visibility_off', tone: 'neutral', filter: { visible: 'false' } },
+    { key: 'hidden', label: 'Masquées', icon: 'visibility_off', tone: 'neutral', filter: { visible: 'false' } },
   ];
 
   readonly columns: ColumnDef[] = [
-    { key: 'createdAt', label: 'Date', type: 'datetime', filter: { type: 'date' } },
+    { key: 'ratedAt', label: 'Date', type: 'datetime', filter: { type: 'date' } },
+    { key: 'source', label: 'Source', type: 'status', options: RATING_SOURCE, filter: { type: 'multiselect' } },
     { key: 'artisanName', label: 'Artisan', type: 'person', sortKey: 'artisan', filter: { type: 'text', param: 'artisan' }, width: '190px' },
     { key: 'artisanPhone', label: 'Tél. artisan', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'clientName', label: 'Client', sortKey: 'client', filter: { type: 'text', param: 'client' } },
     { key: 'clientPhone', label: 'Tél. client', type: 'phone', filter: { type: 'text' }, width: '160px' },
     { key: 'rating', label: 'Note', type: 'stars', filter: { type: 'number' } },
     { key: 'comment', label: 'Commentaire', type: 'longtext', sortKey: false, filter: { type: 'text' } },
-    { key: 'source', label: 'Lié à', type: 'status', options: REVIEW_SOURCE, sortKey: false, filter: { type: 'select' } },
-    { key: 'visible', label: 'Visibilité', type: 'boolean', trueLabel: 'Visible', falseLabel: 'Masqué', filter: { type: 'boolean' } },
+    { key: 'visible', label: 'Visibilité', type: 'boolean', trueLabel: 'Comptée', falseLabel: 'Masquée', filter: { type: 'boolean' } },
   ];
 
   readonly actions: RowAction[] = [
-    { icon: 'visibility', label: "Voir l'avis", tone: 'primary', handler: r => this.open(r) },
+    { icon: 'visibility', label: 'Voir la note', tone: 'primary', handler: r => this.open(r) },
     { icon: 'visibility_off', label: 'Masquer', tone: 'danger', visible: r => r.visible, handler: r => this.setVisible(r, false) },
     { icon: 'restore', label: 'Réafficher', tone: 'success', visible: r => !r.visible, handler: r => this.setVisible(r, true) },
+    { icon: 'delete_forever', label: 'Supprimer définitivement', tone: 'danger', visible: () => this.isSuperAdmin, handler: r => this.remove(r) },
   ];
 
-  constructor(console: ConsoleService, ui: UiService, api: ApiService) {
+  constructor(console: ConsoleService, ui: UiService, api: ApiService, auth: AuthService) {
     super(console, ui, api);
+    this.isSuperAdmin = (auth.getCurrentUser()?.role || '').toLowerCase() === 'super_admin';
   }
 
   setVisible(row: any, visible: boolean): void {
     this.confirmThen(
       visible
-        ? { title: 'Réafficher cet avis ?', message: "Il sera de nouveau visible sur le profil de l'artisan.", tone: 'success', confirmLabel: 'Réafficher' }
-        : { title: 'Masquer cet avis ?', message: "Il ne sera plus visible sur le profil de l'artisan. Rien n'est supprimé.", tone: 'danger', confirmLabel: 'Masquer' },
-      () => this.api.patch(`/admin/v2/reviews/${row.id}/visible`, { visible }),
-      visible ? 'Avis réaffiché' : 'Avis masqué',
+        ? { title: 'Réafficher cette note ?', message: `Elle revient sur le profil de ${row.artisanName} et compte de nouveau dans sa note et son nombre d'avis.`, tone: 'success', confirmLabel: 'Réafficher' }
+        : { title: 'Masquer cette note ?', message: `Elle disparaît du profil de ${row.artisanName} et ne compte plus dans sa note ni son nombre d'avis. Rien n'est supprimé.`, tone: 'danger', confirmLabel: 'Masquer' },
+      () => this.api.patch(`/admin/v2/ratings/${row.id}/visible`, { visible }),
+      visible ? 'Note réaffichée, note de l\'artisan recalculée' : 'Note masquée, note de l\'artisan recalculée',
+    );
+  }
+
+  remove(row: any): void {
+    this.confirmThen(
+      {
+        title: 'Supprimer définitivement cette note ?',
+        message: `La note ${row.rating}★ de ${row.clientName ?? 'ce client'} et son commentaire sont effacés pour toujours, puis la note de ${row.artisanName} est recalculée. Pour seulement la retirer, utilisez « Masquer ».`,
+        tone: 'danger', confirmLabel: 'Supprimer définitivement',
+      },
+      () => this.api.delete(`/admin/v2/ratings/${row.id}`),
+      'Note supprimée, note de l\'artisan recalculée',
     );
   }
 
   open(r: any): void {
     const data: DetailData = {
-      title: `Avis de ${r.clientName ?? 'client'}`,
+      title: `Note de ${r.clientName ?? 'client'}`,
       subtitle: `Pour ${r.artisanName ?? 'artisan'}`,
       icon: 'reviews',
-      badges: [r.visible ? { label: 'Visible', tone: 'success' } : { label: 'Masqué', tone: 'neutral' }],
+      badges: [r.visible ? { label: 'Comptée', tone: 'success' } : { label: 'Masquée', tone: 'neutral' }],
       sections: [
         {
-          title: 'Avis',
+          title: 'Note',
           items: [
             { label: 'Note', value: r.rating, type: 'stars' },
-            { label: 'Date', value: r.createdAt, type: 'datetime' },
+            { label: 'Date', value: r.ratedAt, type: 'datetime' },
+            { label: 'Source', value: r.source, type: 'status', options: RATING_SOURCE },
+            { label: 'Client', value: r.clientName },
+            { label: 'Tél. client', value: r.clientPhone, type: 'phone' },
             { label: 'Commentaire', value: r.comment, type: 'longtext', full: true },
-            { label: 'Étiquettes', value: r.tags, type: 'chips', full: true },
-            { label: 'Lié à', value: r.source, type: 'status', options: REVIEW_SOURCE },
           ],
         },
       ],
-      images: (r.photos ?? []).map((p: string, i: number) => ({ label: `Photo ${i + 1}`, url: p })),
       actions: [
         r.visible
-          ? { label: 'Masquer', icon: 'visibility_off', tone: 'danger', handler: () => this.setVisible(r, false) }
-          : { label: 'Réafficher', icon: 'restore', tone: 'success', handler: () => this.setVisible(r, true) },
+          ? { label: 'Masquer', icon: 'visibility_off', tone: 'danger', closeFirst: true, handler: () => this.setVisible(r, false) }
+          : { label: 'Réafficher', icon: 'restore', tone: 'success', closeFirst: true, handler: () => this.setVisible(r, true) },
+        ...(this.isSuperAdmin
+          ? [{ label: 'Supprimer définitivement', icon: 'delete_forever', tone: 'danger' as const, closeFirst: true, handler: () => this.remove(r) }]
+          : []),
       ],
     };
     this.ui.detail(data);
