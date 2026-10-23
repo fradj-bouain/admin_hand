@@ -201,6 +201,70 @@
         </div>
       </mat-tab>
 
+      <!-- Publicités Google (AdMob) -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>campaign</mat-icon>
+          Publicités Google
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="section-header">
+            <h2>Publicités Google (AdMob)</h2>
+            <p>
+              Montrées aux <strong>clients sans Premium</strong> et aux visiteurs (jamais aux artisans ni aux clients Premium).
+              Les changements s'appliquent <strong>à la prochaine ouverture de l'app</strong>, sans nouvelle version.
+            </p>
+          </div>
+
+          <mat-card class="verification-card">
+            <mat-card-content>
+              <div class="ads-error" *ngIf="adsError"><mat-icon>error_outline</mat-icon>{{ adsError }}</div>
+
+              <form [formGroup]="adsForm" class="app-config-form">
+                <mat-slide-toggle formControlName="adsEnabled" color="primary" class="ads-toggle">
+                  Publicités Google activées
+                </mat-slide-toggle>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>ID du bloc d'annonces « Bannière »</mat-label>
+                  <input matInput formControlName="bannerUnitId" placeholder="ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX" autocomplete="off">
+                  <mat-hint>En bas de l'accueil et de la recherche. Vide = pas de bannière.</mat-hint>
+                  <mat-error>{{ adsFieldError('bannerUnitId') }}</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>ID du bloc d'annonces « Natif avancé »</mat-label>
+                  <input matInput formControlName="nativeUnitId" placeholder="ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX" autocomplete="off">
+                  <mat-hint>Une annonce toutes les 8 fiches d'artisans dans la recherche. Vide = aucune.</mat-hint>
+                  <mat-error>{{ adsFieldError('nativeUnitId') }}</mat-error>
+                </mat-form-field>
+              </form>
+
+              <div class="ads-help">
+                <mat-icon>info</mat-icon>
+                <div>
+                  <p>Où trouver ces ID : AdMob &gt; Applications &gt; SNAY3I &gt; <strong>Blocs d'annonces</strong> (ils contiennent « / »).</p>
+                  <p>L'ID de l'application <code>{{ admobAppId }}</code> (avec « ~ ») est intégré à l'app : il ne se règle pas ici.</p>
+                  <p *ngIf="adsConfig.publisherId">Seuls les blocs du compte AdMob <code>{{ adsConfig.publisherId }}</code> sont acceptés.</p>
+                </div>
+              </div>
+
+              <p class="config-updated" *ngIf="adsConfig.updatedAt">
+                Dernière modification : {{ adsConfig.updatedAt }}
+              </p>
+            </mat-card-content>
+          </mat-card>
+
+          <div class="section-actions">
+            <button mat-raised-button color="primary" (click)="saveAds()" [disabled]="adsSaving">
+              <mat-icon>{{ adsSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+              {{ adsSaving ? 'Sauvegarde...' : 'Enregistrer les publicités' }}
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+
       <!-- General Settings Tab -->
       <mat-tab>
         <ng-template mat-tab-label>

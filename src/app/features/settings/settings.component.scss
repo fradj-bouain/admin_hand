@@ -358,3 +358,38 @@
   }
 }
 
+
+// Publicités Google
+.ads-toggle {
+  display: block;
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+
+.ads-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fdecec;
+  color: #b42318;
+  font-size: 13.5px;
+}
+
+.ads-help {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #eef6fb;
+  color: #33475b;
+  font-size: 13px;
+
+  mat-icon { color: #0b7fb3; flex: none; }
+  p { margin: 0 0 4px; }
+  p:last-child { margin-bottom: 0; }
+  code { font-size: 12px; word-break: break-all; }
+}

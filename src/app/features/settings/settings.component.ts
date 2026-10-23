@@ -31,6 +31,18 @@ export interface AppMobileConfig {
   updatedAt?: string;
 }
 
+/** Publicités Google (AdMob) : interrupteur et blocs d'annonces, lus par l'app à chaque ouverture. */
+export interface AdsConfig {
+  adsEnabled: boolean;
+  bannerUnitId?: string | null;
+  nativeUnitId?: string | null;
+  publisherId?: string | null;
+  updatedAt?: string | null;
+}
+
+/** ID d'un bloc d'annonces AdMob (avec « / ») ; le serveur vérifie aussi le compte et refuse les ID de test. */
+export const AD_UNIT_PATTERN = '^\\s*ca-app-pub-\\d{10,20}/\\d{6,14}\\s*$';
+
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
@@ -71,6 +83,13 @@ export class SettingsComponent implements OnInit {
   };
   appConfigForm: FormGroup;
 
+  /** App ID AdMob : fixe, dans l'app (android/app/build.gradle) ; affiché pour information. */
+  readonly admobAppId = 'ca-app-pub-9289618120553401~7852914097';
+  adsConfig: AdsConfig = { adsEnabled: true };
+  adsForm: FormGroup;
+  adsSaving = false;
+  adsError: string | null = null;
+
   constructor(
     private apiService: ApiService,
     private snackBar: MatSnackBar,
@@ -88,11 +107,68 @@ export class SettingsComponent implements OnInit {
       androidStoreUrl: ['', Validators.required],
       iosStoreUrl: [''],
     });
+    this.adsForm = this.fb.group({
+      adsEnabled: [true],
+      bannerUnitId: ['', Validators.pattern(AD_UNIT_PATTERN)],
+      nativeUnitId: ['', Validators.pattern(AD_UNIT_PATTERN)],
+    });
   }
 
   ngOnInit(): void {
     this.loadSettings();
     this.loadAppMobileConfig();
+    this.loadAds();
+  }
+
+  loadAds(): void {
+    this.apiService.get<AdsConfig>('/admin/app-mobile-config/ads').subscribe({
+      next: response => {
+        if (response.data) {
+          this.adsConfig = response.data;
+          this.adsForm.reset({
+            adsEnabled: response.data.adsEnabled,
+            bannerUnitId: response.data.bannerUnitId ?? '',
+            nativeUnitId: response.data.nativeUnitId ?? '',
+          });
+        }
+      },
+      error: () => console.log('Publicités : réglages indisponibles'),
+    });
+  }
+
+  saveAds(): void {
+    this.adsForm.markAllAsTouched();
+    if (this.adsForm.invalid || this.adsSaving) return;
+    this.adsSaving = true;
+    this.adsError = null;
+    const v = this.adsForm.value;
+    const body = {
+      adsEnabled: !!v.adsEnabled,
+      bannerUnitId: (v.bannerUnitId || '').trim(),
+      nativeUnitId: (v.nativeUnitId || '').trim(),
+    };
+    this.apiService.put<AdsConfig>('/admin/app-mobile-config/ads', body).subscribe({
+      next: response => {
+        if (response.data) {
+          this.adsConfig = response.data;
+          this.adsForm.markAsPristine();
+        }
+        this.snackBar.open("Publicités enregistrées : appliquées à la prochaine ouverture de l'app", 'Fermer', { duration: 5000 });
+        this.adsSaving = false;
+      },
+      error: err => {
+        this.adsError = err?.error?.message || "L'enregistrement a échoué";
+        this.adsSaving = false;
+      },
+    });
+  }
+
+  adsFieldError(key: 'bannerUnitId' | 'nativeUnitId'): string | null {
+    const c = this.adsForm.get(key);
+    if (!c || !c.touched || !c.errors) return null;
+    const value = String(c.value || '');
+    if (value.includes('~')) return "C'est l'ID de l'application (avec « ~ ») : ici il faut l'ID du bloc d'annonces (avec « / »)";
+    return 'Format attendu : ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
   }
 
   loadSettings(): void {
