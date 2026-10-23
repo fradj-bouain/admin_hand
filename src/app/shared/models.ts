@@ -160,5 +160,13 @@ export interface DetailData {
   sections: DetailSection[];
   lists?: DetailList[];
   images?: { label: string; url: string | null }[];
+  /** Galeries de photos groupées (ex. projets du portfolio d'un artisan). */
+  galleries?: DetailGallery[];
   actions?: DetailAction[];
+}
+
+export interface DetailGallery {
+  title: string;
+  empty?: string;
+  groups: { title?: string | null; subtitle?: string | null; text?: string | null; photos: string[] }[];
 }

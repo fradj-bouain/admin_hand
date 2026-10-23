@@ -166,6 +166,20 @@ export const STORY_STATE: Option[] = [
   { value: 'disabled', label: 'Masquée', tone: 'danger' },
 ];
 
+/** État affiché : une story retirée par l'artisan (ou avant le 23/10/2026) n'est pas « masquée par l'équipe ». */
+export const STORY_STATE_DISPLAY: Option[] = [
+  ...STORY_STATE,
+  { value: 'removed', label: "Retirée par l'artisan", tone: 'neutral' },
+];
+
+/** Réactions aux stories, dans l'ordre affiché dans l'app. */
+export const STORY_REACTIONS: { key: string; emoji: string }[] = [
+  { key: 'LIKE', emoji: '👍' },
+  { key: 'LOVE', emoji: '❤️' },
+  { key: 'HAHA', emoji: '😂' },
+  { key: 'WOW', emoji: '😮' },
+];
+
 export const APPLICANT_STATUS: Option[] = [
   { value: 'PENDING', label: 'En attente', tone: 'warning' },
   { value: 'SELECTED', label: 'Choisi', tone: 'success' },

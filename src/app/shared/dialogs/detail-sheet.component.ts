@@ -65,6 +65,25 @@ interface PreparedItem {
           </div>
         </section>
 
+        <section class="sheet-section" *ngFor="let g of galleries">
+          <h3>{{ g.title }} <span class="count">{{ g.groups.length }}</span></h3>
+          <div *ngFor="let group of g.groups" class="sheet-gallery">
+            <div class="sheet-gallery-head" *ngIf="group.title || group.subtitle">
+              <strong>{{ group.title }}</strong>
+              <span *ngIf="group.subtitle">{{ group.subtitle }}</span>
+            </div>
+            <p class="sheet-gallery-text" *ngIf="group.text">{{ group.text }}</p>
+            <div class="sheet-images">
+              <a *ngFor="let p of group.photos" [href]="p.url" target="_blank" rel="noopener" class="sheet-image">
+                <img *ngIf="!p.broken; else noPhoto" [src]="p.url" alt="" loading="lazy" (error)="p.broken = true" />
+                <ng-template #noPhoto><div class="sheet-image-missing"><mat-icon>broken_image</mat-icon>Ouvrir le fichier</div></ng-template>
+              </a>
+            </div>
+            <p class="sheet-empty" *ngIf="!group.photos.length">Aucune photo</p>
+          </div>
+          <p class="sheet-empty" *ngIf="!g.groups.length">{{ g.empty || 'Aucun élément' }}</p>
+        </section>
+
         <section class="sheet-section" *ngFor="let l of data.lists || []">
           <h3>{{ l.title }} <span class="count">{{ l.rows.length }}</span></h3>
           <div class="mini-table" *ngIf="l.rows.length; else noRows">
@@ -86,6 +105,7 @@ interface PreparedItem {
 export class DetailSheetComponent {
   sections: { title: string; items: PreparedItem[] }[];
   images: { label: string; url: string; broken?: boolean }[];
+  galleries: { title: string; empty?: string; groups: { title?: string | null; subtitle?: string | null; text?: string | null; photos: { url: string; broken?: boolean }[] }[] }[];
   avatar: string | null;
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: DetailData, private ref: MatDialogRef<DetailSheetComponent>) {
@@ -97,6 +117,14 @@ export class DetailSheetComponent {
     this.images = (data.images ?? [])
       .map(i => ({ label: i.label, url: fileUrl(i.url) }))
       .filter((i): i is { label: string; url: string } => !!i.url);
+    this.galleries = (data.galleries ?? []).map(g => ({
+      title: g.title,
+      empty: g.empty,
+      groups: g.groups.map(group => ({
+        ...group,
+        photos: group.photos.map(p => fileUrl(p)).filter((u): u is string => !!u).map(url => ({ url })),
+      })),
+    }));
   }
 
   private prepare(i: DetailItem): PreparedItem {

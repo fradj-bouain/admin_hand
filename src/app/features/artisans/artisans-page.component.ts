@@ -5,6 +5,7 @@ import { ChatService } from '../messages/chat.service';
 import { ColumnDef, DetailData, FormField, Option, RowAction } from '../../shared/models';
 import { APPLICANT_STATUS, BADGE_STATUS, BOOST_STATUS, BOOST_TYPE, EMPLOYEE_STATUS, GOVERNORATE_OPTIONS, REQUEST_STATUS, RESERVATION_STATUS, STORY_STATE, VERIFICATION_STATUS, labelOf } from '../../shared/labels';
 import { UiService } from '../../shared/ui.service';
+import { formatDate } from '../../shared/format';
 import { clean } from '../clients/clients-page.component';
 
 @Component({
@@ -266,6 +267,18 @@ export class ArtisansPageComponent extends ConsolePage {
             { label: 'Inscription', value: e.createdAt, type: 'datetime' },
             { label: 'Dernière visite', value: e.lastSeen, type: 'datetime' },
           ],
+        },
+      ],
+      galleries: [
+        {
+          title: 'Portfolio',
+          empty: "Aucun projet dans le portfolio",
+          groups: (e.portfolio ?? []).map((p: any) => ({
+            title: p.title ?? (p.id == null ? 'Photos sans projet' : null),
+            subtitle: p.createdAt ? formatDate(p.createdAt) : null,
+            text: p.description,
+            photos: p.photos ?? [],
+          })),
         },
       ],
       lists: [
